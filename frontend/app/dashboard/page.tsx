@@ -160,7 +160,6 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
-        </div>
       </main>
 
       <Footer />
