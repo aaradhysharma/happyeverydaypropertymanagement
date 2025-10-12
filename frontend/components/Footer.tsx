@@ -3,7 +3,7 @@
  * Version number shown at bottom right corner
  */
 export function Footer() {
-  const version = process.env.NEXT_PUBLIC_VERSION || '0.0.4';
+  const version = process.env.NEXT_PUBLIC_VERSION || '1.0.0';
 
   return (
     <footer className="border-t border-border bg-background/80">

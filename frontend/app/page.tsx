@@ -52,13 +52,28 @@ export default function HomePage() {
             <h1 className="text-2xl font-heading text-foreground">Property stewardship, beautifully managed.</h1>
           </div>
           <nav className="flex items-center gap-3">
-            <Link href="/dashboard">
-              <Button variant="ghost" className="rounded-full px-5 py-2 text-sm font-semibold">
-                Client Portal
+            <Link href="/about">
+              <Button variant="ghost" className="rounded-full px-4 py-2 text-sm font-semibold">
+                About
               </Button>
             </Link>
-            <Link href="#contact">
-              <Button className="button-primary">Schedule a consult</Button>
+            <Link href="/technology">
+              <Button variant="ghost" className="rounded-full px-4 py-2 text-sm font-semibold">
+                Technology
+              </Button>
+            </Link>
+            <Link href="/properties">
+              <Button variant="ghost" className="rounded-full px-4 py-2 text-sm font-semibold">
+                Properties
+              </Button>
+            </Link>
+            <Link href="/map">
+              <Button variant="ghost" className="rounded-full px-4 py-2 text-sm font-semibold">
+                Map
+              </Button>
+            </Link>
+            <Link href="/dashboard">
+              <Button className="button-primary">Client Portal</Button>
             </Link>
           </nav>
         </div>
@@ -68,14 +83,15 @@ export default function HomePage() {
         <section className="site-section">
           <div className="container mx-auto grid gap-10 px-6 md:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-8">
-              <p className="eyebrow">Full-service property management</p>
+              <p className="eyebrow">AI-Enhanced property management</p>
               <h2 className="text-5xl font-heading leading-tight text-foreground">
-                We look after every detail so your properties feel like home and perform like assets.
+                Where intelligent automation meets genuine hospitality.
               </h2>
               <p>
-                Happy Everyday partners with owners, associations, and investors across the United States to deliver grounded, human-first
-                property management. From board meetings to resident move-ins, we handle every touchpoint with hospitality, precision, and an eye
-                toward long-term value.
+                Happy Everyday combines proprietary AI agents with seasoned property professionals to deliver exceptional stewardship at scale. Our autonomous systems handle routine operations—maintenance triage, vendor dispatch, rent collection, compliance monitoring—freeing our onsite teams to focus entirely on resident relationships and strategic asset management.
+              </p>
+              <p>
+                The result? Portfolios that operate 75% faster with 60% lower vacancy rates, all while maintaining the white-glove service owners expect. Technology that elevates, not replaces.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link href="#services" className="button-primary">
@@ -99,10 +115,9 @@ export default function HomePage() {
                 />
               </div>
               <div className="space-y-4 p-8">
-                <h3 className="text-xl font-semibold text-foreground">A concierge approach for every community</h3>
+                <h3 className="text-xl font-semibold text-foreground">AI agents + human expertise</h3>
                 <p className="text-[color:rgba(37,33,30,0.78)]">
-                  From high-rise condominiums to single-family associations, our onsite teams coordinate maintenance, governance, hospitality, and
-                  communications with care and transparency.
+                  Our autonomous AI agents monitor property conditions 24/7, predict maintenance needs, and coordinate vendor dispatch. Meanwhile, our onsite professionals build resident relationships, handle complex negotiations, and make judgment calls technology can't. The perfect partnership for modern property stewardship.
                 </p>
               </div>
             </div>
@@ -293,7 +308,7 @@ export default function HomePage() {
       <footer className="border-t border-border bg-background/80">
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-6 py-8 md:flex-row">
           <p className="text-sm text-[color:rgba(37,33,30,0.65)]">© {new Date().getFullYear()} Happy Everyday Property Management. All rights reserved.</p>
-          <div className="text-sm text-[color:rgba(37,33,30,0.65)]">Version {process.env.NEXT_PUBLIC_VERSION || "0.0.4"}</div>
+          <div className="text-sm text-[color:rgba(37,33,30,0.65)]">Version {process.env.NEXT_PUBLIC_VERSION || "1.0.0"}</div>
         </div>
       </footer>
     </div>
