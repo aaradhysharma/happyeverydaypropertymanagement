@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -279,27 +281,55 @@ export default function HomePage() {
               </p>
               <div className="space-y-2 text-[color:rgba(37,33,30,0.78)]">
                 <p><strong>Director:</strong> Dr. Efthemia P.</p>
+                <p><a href="mailto:drmiap923@gmail.com" className="text-primary hover:underline">drmiap923@gmail.com</a></p>
                 <p>+1 (949) 385-2399</p>
                 <p><a href="https://thehappyeveryday.org/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">thehappyeveryday.org</a></p>
               </div>
             </div>
-            <form className="surface-card space-y-6 p-8">
+            <form 
+              className="surface-card space-y-6 p-8"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const form = e.target as HTMLFormElement;
+                const name = (form.elements.namedItem('name') as HTMLInputElement).value;
+                const email = (form.elements.namedItem('email') as HTMLInputElement).value;
+                const message = (form.elements.namedItem('message') as HTMLTextAreaElement).value;
+                
+                const subject = encodeURIComponent(`Property Management Inquiry from ${name}`);
+                const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`);
+                
+                window.location.href = `mailto:drmiap923@gmail.com?subject=${subject}&body=${body}`;
+              }}
+            >
               <div>
                 <label className="block text-sm font-semibold text-foreground/80">Name</label>
-                <input className="mt-2 w-full rounded-xl border border-border/80 bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Jordan Mitchell" />
+                <input 
+                  name="name"
+                  required
+                  className="mt-2 w-full rounded-xl border border-border/80 bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" 
+                  placeholder="Jordan Mitchell" 
+                />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-foreground/80">Email</label>
-                <input className="mt-2 w-full rounded-xl border border-border/80 bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder="you@company.com" />
+                <input 
+                  name="email"
+                  type="email"
+                  required
+                  className="mt-2 w-full rounded-xl border border-border/80 bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" 
+                  placeholder="you@company.com" 
+                />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-foreground/80">How can we help?</label>
                 <textarea
+                  name="message"
+                  required
                   className="mt-2 h-32 w-full rounded-xl border border-border/80 bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="Tell us about your properties, goals, or upcoming initiatives."
                 />
               </div>
-              <Button className="button-primary w-full justify-center">Submit inquiry</Button>
+              <Button type="submit" className="button-primary w-full justify-center">Submit inquiry</Button>
             </form>
           </div>
         </section>
