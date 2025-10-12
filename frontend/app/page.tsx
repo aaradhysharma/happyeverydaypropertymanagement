@@ -278,9 +278,9 @@ export default function HomePage() {
                 experience, and financial management under one roof.
               </p>
               <div className="space-y-2 text-[color:rgba(37,33,30,0.78)]">
-                <p>hello@happyeveryday.co</p>
-                <p>+1 (800) 555-0194</p>
-                <p>Offices in New York, Chicago, Austin, Seattle</p>
+                <p><strong>Director:</strong> Dr. Efthemia P.</p>
+                <p>+1 (949) 385-2399</p>
+                <p><a href="https://thehappyeveryday.org/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">thehappyeveryday.org</a></p>
               </div>
             </div>
             <form className="surface-card space-y-6 p-8">
@@ -307,7 +307,7 @@ export default function HomePage() {
 
       <footer className="border-t border-border bg-background/80">
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-6 py-8 md:flex-row">
-          <p className="text-sm text-[color:rgba(37,33,30,0.65)]">© {new Date().getFullYear()} Happy Everyday Property Management. All rights reserved.</p>
+          <p className="text-sm text-[color:rgba(37,33,30,0.65)]">© 2026 Happy Everyday Property Management. All rights reserved.</p>
           <div className="text-sm text-[color:rgba(37,33,30,0.65)]">Version {process.env.NEXT_PUBLIC_VERSION || "2.0.0"}</div>
         </div>
       </footer>

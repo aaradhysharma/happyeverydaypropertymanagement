@@ -10,7 +10,7 @@ import { Building2, List, Navigation, ArrowLeft } from "lucide-react";
 const property = {
   id: 1,
   name: "44 Unit Apartment Building",
-  address: "1015 Walnut Street, Yankton, SD 57078",
+  address: "1015-1021 Walnut Street, Yankton, SD 57078",
   lat: 42.8711,
   lng: -97.3968,
   price: 2995000,
@@ -263,7 +263,7 @@ export default function MapPage() {
       <footer className="border-t border-border bg-background/80">
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-6 py-8 md:flex-row">
           <p className="text-sm text-[color:rgba(37,33,30,0.65)]">
-            © {new Date().getFullYear()} Happy Everyday Property Management. All rights reserved.
+            © 2026 Happy Everyday Property Management. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground">
             Powered by Google Maps Platform
