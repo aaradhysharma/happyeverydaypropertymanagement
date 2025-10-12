@@ -21,14 +21,14 @@ const property = {
 
 export default function MapPage() {
   const mapRef = useRef<HTMLDivElement>(null);
-  const googleMapRef = useRef<google.maps.Map | null>(null);
+  const googleMapRef = useRef<any>(null);
 
   useEffect(() => {
     // Initialize Google Map
     const initMap = () => {
       if (!mapRef.current || googleMapRef.current) return;
 
-      const map = new google.maps.Map(mapRef.current, {
+      const map = new (window as any).google.maps.Map(mapRef.current, {
         center: { lat: property.lat, lng: property.lng },
         zoom: 15,
         mapTypeControl: true,
@@ -39,15 +39,15 @@ export default function MapPage() {
       googleMapRef.current = map;
 
       // Create custom marker
-      const marker = new google.maps.Marker({
+      const marker = new (window as any).google.maps.Marker({
         position: { lat: property.lat, lng: property.lng },
         map: map,
         title: property.name,
-        animation: google.maps.Animation.DROP,
+        animation: (window as any).google.maps.Animation.DROP,
       });
 
       // Create info window
-      const infoWindow = new google.maps.InfoWindow({
+      const infoWindow = new (window as any).google.maps.InfoWindow({
         content: `
           <div style="padding: 12px; max-width: 300px;">
             <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #252118;">
@@ -91,12 +91,12 @@ export default function MapPage() {
     };
 
     // Load Google Maps script
-    if (!window.google) {
+    if (!(window as any).google) {
       const script = document.createElement("script");
       script.src = `https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initMap`;
       script.async = true;
       script.defer = true;
-      window.initMap = initMap;
+      (window as any).initMap = initMap;
       document.head.appendChild(script);
     } else {
       initMap();
@@ -104,8 +104,8 @@ export default function MapPage() {
 
     return () => {
       // Cleanup
-      if (window.initMap) {
-        delete window.initMap;
+      if ((window as any).initMap) {
+        delete (window as any).initMap;
       }
     };
   }, []);
@@ -272,11 +272,4 @@ export default function MapPage() {
       </footer>
     </div>
   );
-}
-
-declare global {
-  interface Window {
-    google: typeof google;
-    initMap: () => void;
-  }
 }
