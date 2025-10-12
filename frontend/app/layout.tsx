@@ -1,13 +1,24 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { DM_Serif_Display, Manrope } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 
-const inter = Inter({ subsets: ["latin"] });
+const heading = DM_Serif_Display({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-heading",
+});
+
+const body = Manrope({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-body",
+});
 
 export const metadata: Metadata = {
-  title: "Happy Everyday - AI Property Management",
-  description: "AI-Powered Property Management Platform",
+  title: "Happy Everyday Property Management | Full-Service Stewardship",
+  description:
+    "Happy Everyday delivers full-service property management with tailored operations, trusted stewardship, and thoughtfully applied technology across the U.S.",
 };
 
 export default function RootLayout({
@@ -16,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" className={`${heading.variable} ${body.variable}`}>
+      <body className="font-body bg-background text-foreground antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>
