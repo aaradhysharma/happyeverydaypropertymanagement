@@ -14,13 +14,37 @@ import Link from "next/link";
 
 // Mock data for demo purposes until backend is deployed
 const mockDashboardData = {
-  occupancy_rate: 94.2,
-  noi: 2847000,
-  cash_flow: 1235000,
-  maintenance_cost: 42500,
-  tenant_retention: 87.3,
-  response_time: 1.8,
-  properties: 212,
+  occupancy: {
+    occupancy_rate: 94.2,
+    occupied_units: 200,
+    total_units: 212,
+    target_min: 85,
+    target_max: 95,
+    status: 'good',
+  },
+  noi: {
+    net_operating_income: 2847000,
+    gross_revenue: 4125000,
+    operating_expenses: 1278000,
+    noi_margin: 69.0,
+  },
+  cash_flow: {
+    net_cash_flow: 1235000,
+    total_income: 4125000,
+    total_expenses: 2890000,
+    average_monthly_cash_flow: 102916,
+  },
+  tenant_retention: {
+    retention_rate: 87.3,
+    renewed_leases: 48,
+    expiring_leases: 55,
+    status: 'excellent',
+  },
+  maintenance_costs: {
+    total_cost: 42500,
+    cost_per_unit: 200.47,
+    average_response_time: 1.8,
+  },
   revenue_trend: [
     { month: 'Jan', revenue: 185000, expenses: 92000 },
     { month: 'Feb', revenue: 192000, expenses: 95000 },
@@ -47,12 +71,14 @@ export default function DashboardPage() {
         const response = await analyticsApi.getDashboard();
         return response.data;
       } catch (err) {
-        // Return mock data if API is unavailable
+        // Return mock data if API is unavailable (for demo mode)
+        console.log('API unavailable, using mock data for demo');
         return mockDashboardData;
       }
     },
     retry: false,
     refetchInterval: false, // Disable auto-refresh for demo
+    staleTime: Infinity, // Keep data fresh to avoid unnecessary refetching
   });
 
   return (
