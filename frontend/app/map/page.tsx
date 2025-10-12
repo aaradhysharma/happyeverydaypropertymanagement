@@ -10,63 +10,15 @@ import { Building2, List, Navigation } from "lucide-react";
 const properties = [
   {
     id: 1,
-    name: "Riverside Luxury Apartments",
-    address: "1250 Riverside Drive, New York, NY 10032",
-    lat: 40.8296,
-    lng: -73.9428,
+    name: "44 Unit Apartment Building",
+    address: "1015 Walnut Street, Yankton, SD 57078",
+    lat: 42.8711,
+    lng: -97.3968,
     type: "Multifamily",
-    units: 185,
-    occupancy: 96.2,
-  },
-  {
-    id: 2,
-    name: "Lakeview Gardens HOA",
-    address: "8900 Lakeshore Blvd, Chicago, IL 60640",
-    lat: 41.9742,
-    lng: -87.6624,
-    type: "HOA",
-    units: 124,
-    occupancy: 94.8,
-  },
-  {
-    id: 3,
-    name: "Downtown Executive Suites",
-    address: "450 Congress Avenue, Austin, TX 78701",
-    lat: 30.2672,
-    lng: -97.7431,
-    type: "Mixed-Use",
-    units: 92,
-    occupancy: 97.8,
-  },
-  {
-    id: 4,
-    name: "Pacific Heights Condominiums",
-    address: "2100 Broadway, Seattle, WA 98122",
-    lat: 47.6098,
-    lng: -122.3331,
-    type: "Condominium",
-    units: 156,
-    occupancy: 92.3,
-  },
-  {
-    id: 5,
-    name: "Sunset Valley Community",
-    address: "7850 West Sunset Boulevard, Los Angeles, CA 90046",
-    lat: 34.0979,
-    lng: -118.3617,
-    type: "Multifamily",
-    units: 210,
-    occupancy: 95.7,
-  },
-  {
-    id: 6,
-    name: "Harbor Point Estates",
-    address: "3400 Alton Road, Miami Beach, FL 33140",
-    lat: 25.8106,
-    lng: -80.1393,
-    type: "Luxury",
-    units: 68,
-    occupancy: 98.5,
+    units: 44,
+    occupancy: 95.5,
+    price: 2995000,
+    capRate: 6.81,
   },
 ];
 
@@ -123,30 +75,31 @@ export default function MapPage() {
               </div>
             </div>
             
-            {/* Simulated Map Markers */}
+            {/* Simulated Map Marker - Yankton, SD */}
             <div className="absolute inset-0 pointer-events-none">
-              {properties.map((property, index) => (
-                <div
-                  key={property.id}
-                  className="absolute"
-                  style={{
-                    left: `${20 + (index * 13)}%`,
-                    top: `${30 + (index % 3) * 20}%`,
-                  }}
-                >
+              <div
+                className="absolute"
+                style={{
+                  left: "50%",
+                  top: "50%",
+                  transform: "translate(-50%, -50%)",
+                }}
+              >
+                <Link href="/properties/yankton-sd" className="pointer-events-auto">
                   <button
-                    onClick={() => setSelectedProperty(property.id)}
-                    className="pointer-events-auto relative animate-bounce"
+                    onClick={() => setSelectedProperty(1)}
+                    className="relative animate-bounce hover:scale-110 transition-transform"
                   >
                     <Building2 
-                      className={`h-8 w-8 ${
-                        selectedProperty === property.id ? 'text-primary' : 'text-secondary'
-                      } drop-shadow-lg`}
+                      className="h-12 w-12 text-primary drop-shadow-2xl"
                     />
-                    <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-black/20" />
+                    <div className="absolute -bottom-1 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-black/30" />
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm px-3 py-1 rounded-full shadow-lg whitespace-nowrap">
+                      <p className="text-xs font-semibold text-foreground">Yankton, SD</p>
+                    </div>
                   </button>
-                </div>
-              ))}
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -159,43 +112,56 @@ export default function MapPage() {
             </h2>
             <div className="space-y-3">
               {properties.map((property) => (
-                <Card
-                  key={property.id}
-                  className={`surface-card cursor-pointer transition-all ${
-                    selectedProperty === property.id ? 'ring-2 ring-primary' : ''
-                  }`}
-                  onClick={() => setSelectedProperty(property.id)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-foreground">{property.name}</h3>
-                        <p className="text-xs text-muted-foreground mt-1">{property.address}</p>
-                        <div className="mt-3 flex gap-4 text-xs">
-                          <div>
-                            <span className="text-muted-foreground">Type:</span>{" "}
-                            <span className="font-medium text-foreground">{property.type}</span>
+                <Link key={property.id} href="/properties/yankton-sd">
+                  <Card
+                    className={`surface-card cursor-pointer transition-all hover:ring-2 hover:ring-primary ${
+                      selectedProperty === property.id ? 'ring-2 ring-primary' : ''
+                    }`}
+                    onClick={() => setSelectedProperty(property.id)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-foreground">{property.name}</h3>
+                          <p className="text-xs text-muted-foreground mt-1">{property.address}</p>
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-muted-foreground">Price:</span>{" "}
+                              <span className="font-medium text-foreground">${(property.price / 1000000).toFixed(2)}M</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Cap Rate:</span>{" "}
+                              <span className="font-medium text-primary">{property.capRate}%</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Type:</span>{" "}
+                              <span className="font-medium text-foreground">{property.type}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Units:</span>{" "}
+                              <span className="font-medium text-foreground">{property.units}</span>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-muted-foreground">Units:</span>{" "}
-                            <span className="font-medium text-foreground">{property.units}</span>
-                          </div>
-                        </div>
-                        <div className="mt-2">
-                          <div className="flex items-center gap-2">
+                          <div className="mt-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs text-muted-foreground">Occupancy</span>
+                              <span className="text-xs font-semibold text-primary">{property.occupancy}%</span>
+                            </div>
                             <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
                               <div
                                 className="h-full bg-primary rounded-full"
                                 style={{ width: `${property.occupancy}%` }}
                               />
                             </div>
-                            <span className="text-xs font-semibold text-primary">{property.occupancy}%</span>
                           </div>
+                          <Button className="w-full mt-3 rounded-full bg-primary/10 text-primary hover:bg-primary/20">
+                            View Full Report
+                          </Button>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
 

@@ -10,75 +10,20 @@ import { Building2, MapPin, Users, DollarSign, TrendingUp, Home } from "lucide-r
 const properties = [
   {
     id: 1,
-    name: "Riverside Luxury Apartments",
-    address: "1250 Riverside Drive, New York, NY 10032",
-    lat: 40.8296,
-    lng: -73.9428,
+    name: "44 Unit Apartment Building",
+    address: "1015 Walnut Street, Yankton, SD 57078",
+    lat: 42.8711,
+    lng: -97.3968,
     type: "Multifamily",
-    units: 185,
-    occupancy: 96.2,
-    monthlyRevenue: 425000,
-    imageUrl: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: 2,
-    name: "Lakeview Gardens HOA",
-    address: "8900 Lakeshore Blvd, Chicago, IL 60640",
-    lat: 41.9742,
-    lng: -87.6624,
-    type: "HOA",
-    units: 124,
-    occupancy: 94.8,
-    monthlyRevenue: 185000,
-    imageUrl: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: 3,
-    name: "Downtown Executive Suites",
-    address: "450 Congress Avenue, Austin, TX 78701",
-    lat: 30.2672,
-    lng: -97.7431,
-    type: "Mixed-Use",
-    units: 92,
-    occupancy: 97.8,
-    monthlyRevenue: 298000,
-    imageUrl: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: 4,
-    name: "Pacific Heights Condominiums",
-    address: "2100 Broadway, Seattle, WA 98122",
-    lat: 47.6098,
-    lng: -122.3331,
-    type: "Condominium",
-    units: 156,
-    occupancy: 92.3,
-    monthlyRevenue: 356000,
-    imageUrl: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: 5,
-    name: "Sunset Valley Community",
-    address: "7850 West Sunset Boulevard, Los Angeles, CA 90046",
-    lat: 34.0979,
-    lng: -118.3617,
-    type: "Multifamily",
-    units: 210,
-    occupancy: 95.7,
-    monthlyRevenue: 512000,
+    units: 44,
+    occupancy: 95.5,
+    price: 2995000,
+    pricePerUnit: 68068,
+    capRate: 6.81,
+    monthlyRevenue: 44880,
+    yearBuilt: 1977,
+    hudProperty: true,
     imageUrl: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: 6,
-    name: "Harbor Point Estates",
-    address: "3400 Alton Road, Miami Beach, FL 33140",
-    lat: 25.8106,
-    lng: -80.1393,
-    type: "Luxury",
-    units: 68,
-    occupancy: 98.5,
-    monthlyRevenue: 425000,
-    imageUrl: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
   },
 ];
 
@@ -232,9 +177,11 @@ export default function PropertiesPage() {
                     <p className="font-semibold text-foreground">${(property.monthlyRevenue / 1000).toFixed(0)}K</p>
                   </div>
                 </div>
-                <Button className="w-full rounded-full bg-primary/10 text-primary hover:bg-primary/20">
-                  View Details
-                </Button>
+                <Link href="/properties/yankton-sd">
+                  <Button className="w-full rounded-full bg-primary/10 text-primary hover:bg-primary/20">
+                    View Comprehensive Report
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           ))}
