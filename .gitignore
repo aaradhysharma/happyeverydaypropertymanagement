@@ -1,0 +1,78 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+venv/
+env/
+ENV/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+/backend/staticfiles/
+/backend/media/
+
+# FastAPI
+.env
+.env.local
+.env.*.local
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+/frontend/.next/
+/frontend/out/
+/frontend/build
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.production
+.env.development
+
+# Testing
+coverage/
+.pytest_cache/
+.coverage
+
+# Misc
+*.pid
+*.seed
+*.pid.lock
+.celerybeat-schedule
+/backend/uploads/
+
+# Vercel
+.vercel
+
