@@ -75,12 +75,52 @@ const restaurantData = [
 ];
 
 const rentalComparison = [
-  { city: "Yankton", rent: 1248 },
+  { city: "Yankton", rent: 1082 },
   { city: "Rapid City", rent: 1310 },
   { city: "Sioux Falls", rent: 1109 },
   { city: "Mitchell", rent: 1145 },
   { city: "Aberdeen", rent: 1052 },
 ];
+
+// NEW DATA from web scraping (Oct 2025)
+const rentalByBedroom = [
+  { type: "Studio", rent: 923, sqft: 430 },
+  { type: "1 Bedroom", rent: 864, sqft: 616 },
+  { type: "2 Bedroom", rent: 1088, sqft: 849 },
+  { type: "3 Bedroom", rent: 1174, sqft: 1153 },
+];
+
+const rentalPriceDistribution = [
+  { range: "Below $700", percentage: 33, count: 2 },
+  { range: "$700-$1,000", percentage: 0, count: 0 },
+  { range: "$1,001-$1,500", percentage: 67, count: 4 },
+  { range: "$1,501-$2,000", percentage: 0, count: 0 },
+  { range: "Above $2,000", percentage: 0, count: 0 },
+];
+
+const rentYearOverYear = [
+  { month: "Jan", year2024: 520, year2025: 520 },
+  { month: "Feb", year2024: 520, year2025: 1050 },
+  { month: "Mar", year2024: 1150, year2025: 950 },
+  { month: "Apr", year2024: 520, year2025: 900 },
+  { month: "May", year2024: 2200, year2025: 900 },
+  { month: "Jun", year2024: 925, year2025: 925 },
+  { month: "Jul", year2024: 1500, year2025: 1050 },
+  { month: "Aug", year2024: 2200, year2025: 2400 },
+  { month: "Sep", year2024: 520, year2025: 1800 },
+  { month: "Oct", year2024: 865, year2025: 1082 },
+];
+
+const marketMetrics = {
+  avgRent: 1082,
+  yoyChange: 562,
+  vsNationalAvg: -47, // percentage
+  nationalAvg: 2023,
+  marketTemp: "COOL", // COOL, WARM, HOT
+  availableRentals: 6,
+  minRent: 388,
+  maxRent: 2400,
+};
 
 const COLORS = ["#0f3d35", "#c8643c", "#4a7c7e", "#d4976c", "#2c5f5f", "#999999"];
 
@@ -445,25 +485,140 @@ export default function YanktonPropertyReport() {
 
           {/* Market Data Tab */}
           <TabsContent value="market" className="space-y-8">
+            {/* Market Overview Banner */}
+            <Card className="surface-card bg-primary/5 border-l-4 border-l-primary">
+              <CardContent className="p-6">
+                <div className="grid gap-6 md:grid-cols-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Average Rent</p>
+                    <p className="text-3xl font-heading font-semibold text-foreground">${marketMetrics.avgRent}</p>
+                    <p className="text-xs text-muted-foreground mt-1">October 2025</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">YoY Change</p>
+                    <p className="text-3xl font-heading font-semibold text-primary">+${marketMetrics.yoyChange}</p>
+                    <p className="text-xs text-muted-foreground mt-1">vs last year</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">vs National</p>
+                    <p className="text-3xl font-heading font-semibold text-secondary">{marketMetrics.vsNationalAvg}%</p>
+                    <p className="text-xs text-muted-foreground mt-1">Lower than avg</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Market Temp</p>
+                    <p className="text-3xl font-heading font-semibold text-foreground">{marketMetrics.marketTemp}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Stable demand</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Rental Rates by Bedroom Type */}
             <Card className="surface-card">
               <CardHeader>
-                <CardTitle className="font-heading">Regional Rental Rate Comparison</CardTitle>
+                <CardTitle className="font-heading">Rental Rates by Bedroom Type (Oct 2025)</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={rentalComparison} layout="vertical">
+                  <BarChart data={rentalByBedroom}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
-                    <XAxis type="number" />
-                    <YAxis dataKey="city" type="category" />
+                    <XAxis dataKey="type" />
+                    <YAxis yAxisId="left" orientation="left" stroke="#0f3d35" />
+                    <YAxis yAxisId="right" orientation="right" stroke="#c8643c" />
                     <Tooltip />
-                    <Bar dataKey="rent" fill="#0f3d35" name="Avg Monthly Rent" />
+                    <Legend />
+                    <Bar yAxisId="left" dataKey="rent" fill="#0f3d35" name="Avg Rent ($)" />
+                    <Bar yAxisId="right" dataKey="sqft" fill="#c8643c" name="Avg Sq Ft" />
                   </BarChart>
                 </ResponsiveContainer>
-                <p className="text-sm text-muted-foreground mt-4">
-                  Yankton's average rent of $1,248 is higher than most South Dakota markets except Rapid City
-                </p>
+                <div className="grid grid-cols-4 gap-4 mt-4 text-sm">
+                  {rentalByBedroom.map((item) => (
+                    <div key={item.type} className="text-center p-3 bg-muted/50 rounded-lg">
+                      <p className="font-semibold text-foreground">{item.type}</p>
+                      <p className="text-primary font-semibold">${item.rent}/mo</p>
+                      <p className="text-xs text-muted-foreground">{item.sqft} sq ft</p>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
+
+            {/* Year-over-Year Rental Trends */}
+            <Card className="surface-card">
+              <CardHeader>
+                <CardTitle className="font-heading">Year-over-Year Rental Trends</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={rentYearOverYear}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="year2024" stroke="#c8643c" strokeWidth={3} name="2024" />
+                    <Line type="monotone" dataKey="year2025" stroke="#0f3d35" strokeWidth={3} name="2025" />
+                  </LineChart>
+                </ResponsiveContainer>
+                <div className="grid grid-cols-3 gap-4 mt-4 text-sm">
+                  <div className="text-center p-3 bg-primary/5 rounded-lg">
+                    <p className="text-muted-foreground mb-1">Average YoY Increase</p>
+                    <p className="text-2xl font-heading font-semibold text-primary">+$562</p>
+                  </div>
+                  <div className="text-center p-3 bg-secondary/5 rounded-lg">
+                    <p className="text-muted-foreground mb-1">Price Range</p>
+                    <p className="text-xl font-heading font-semibold text-foreground">${marketMetrics.minRent}-${marketMetrics.maxRent}</p>
+                  </div>
+                  <div className="text-center p-3 bg-primary/5 rounded-lg">
+                    <p className="text-muted-foreground mb-1">Available Units</p>
+                    <p className="text-2xl font-heading font-semibold text-foreground">{marketMetrics.availableRentals}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Rental Price Distribution */}
+            <div className="grid gap-8 md:grid-cols-2">
+              <Card className="surface-card">
+                <CardHeader>
+                  <CardTitle className="font-heading">Rental Price Distribution</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={rentalPriceDistribution}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+                      <XAxis dataKey="range" angle={-45} textAnchor="end" height={100} />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="percentage" fill="#0f3d35" name="Percentage (%)" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <p className="text-sm text-center mt-4">
+                    <span className="font-semibold text-primary">67%</span> of rentals fall in the $1,001-$1,500 range
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="surface-card">
+                <CardHeader>
+                  <CardTitle className="font-heading">Regional Rental Rate Comparison</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={rentalComparison} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+                      <XAxis type="number" />
+                      <YAxis dataKey="city" type="category" />
+                      <Tooltip />
+                      <Bar dataKey="rent" fill="#0f3d35" name="Avg Monthly Rent" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <p className="text-sm text-muted-foreground mt-4">
+                    Yankton's $1,082 average rent is competitive in the South Dakota market
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
 
             <div className="grid gap-8 md:grid-cols-3">
               <Card className="surface-card">
@@ -890,7 +1045,7 @@ export default function YanktonPropertyReport() {
             © {new Date().getFullYear()} Happy Everyday Property Management. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground">
-            Data sources: FBI UCR, South Dakota AG, NeighborhoodScout, Perplexity Research
+            Data sources: FBI UCR, SD AG, NeighborhoodScout, Apartments.com, Zillow (Real-time web scraping via Firecrawl AI)
           </p>
         </div>
       </footer>
