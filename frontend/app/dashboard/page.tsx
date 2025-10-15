@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { analyticsApi } from "@/lib/api";
 import { KPICards } from "@/components/analytics/KPICards";
 import { CashFlowChart } from "@/components/analytics/CashFlowChart";
@@ -9,7 +9,8 @@ import { MaintenanceStats } from "@/components/analytics/MaintenanceStats";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, RefreshCw, ImageIcon, Users } from "lucide-react";
+import { Building2, RefreshCw, ImageIcon, Users, TrendingUp, Loader2 } from "lucide-react";
+import { useState } from "react";
 import Link from "next/link";
 
 // Mock data for demo purposes until backend is deployed
@@ -64,21 +65,53 @@ const mockDashboardData = {
 };
 
 export default function DashboardPage() {
+  const [selectedPropertyId, setSelectedPropertyId] = useState<number | undefined>(undefined);
+  const queryClient = useQueryClient();
+
   const { data = mockDashboardData, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['dashboard'],
     queryFn: async () => {
       try {
-        const response = await analyticsApi.getDashboard();
+        const response = await analyticsApi.getDashboard(selectedPropertyId);
         return response.data;
       } catch (err) {
-        // Return mock data if API is unavailable (for demo mode)
         console.log('API unavailable, using mock data for demo');
         return mockDashboardData;
       }
     },
     retry: false,
-    refetchInterval: false, // Disable auto-refresh for demo
-    staleTime: Infinity, // Keep data fresh to avoid unnecessary refetching
+    refetchInterval: false,
+    staleTime: Infinity,
+  });
+
+  const { data: propertiesData } = useQuery({
+    queryKey: ['properties'],
+    queryFn: async () => {
+      try {
+        const response = await analyticsApi.getProperties();
+        return response.data.properties as Array<{ id: number; name: string; city: string; state: string }>;
+      } catch (err) {
+        return [];
+      }
+    },
+  });
+
+  const { data: marketData, isFetching: marketFetching } = useQuery({
+    queryKey: ['market-data', selectedPropertyId],
+    enabled: !!selectedPropertyId,
+    queryFn: async () => {
+      if (!selectedPropertyId) return null;
+      const response = await analyticsApi.getLatestMarketData(selectedPropertyId);
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 60,
+  });
+
+  const refreshMarketDataMutation = useMutation({
+    mutationFn: analyticsApi.refreshMarketData,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['market-data', selectedPropertyId] });
+    },
   });
 
   return (
@@ -131,13 +164,42 @@ export default function DashboardPage() {
                 centralized dashboard.
               </p>
             </div>
-            <Button
-              onClick={() => refetch()}
-              disabled={isFetching}
-              className="rounded-full bg-primary/10 px-6 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/15">
-              <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-              {isFetching ? "Syncing..." : "Refresh data"}
-            </Button>
+            <div className="flex flex-wrap gap-3">
+              {propertiesData && propertiesData.length > 0 && (
+                <select
+                  value={selectedPropertyId ?? ""}
+                  onChange={(event) => setSelectedPropertyId(Number(event.target.value) || undefined)}
+                  className="rounded-full border border-border bg-background px-4 py-2 text-sm"
+                >
+                  <option value="">All properties</option>
+                  {propertiesData.map((property) => (
+                    <option key={property.id} value={property.id}>
+                      {property.name} – {property.city}, {property.state}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <Button
+                onClick={() => refetch()}
+                disabled={isFetching}
+                className="rounded-full bg-primary/10 px-6 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/15"
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+                {isFetching ? "Syncing..." : "Refresh data"}
+              </Button>
+              <Button
+                onClick={() => refreshMarketDataMutation.mutate()}
+                disabled={refreshMarketDataMutation.isPending}
+                className="rounded-full bg-secondary/10 px-6 py-3 text-sm font-semibold text-secondary transition-colors hover:bg-secondary/15"
+              >
+                {refreshMarketDataMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <TrendingUp className="mr-2 h-4 w-4" />
+                )}
+                {refreshMarketDataMutation.isPending ? "Updating market" : "Update market data"}
+              </Button>
+            </div>
           </div>
 
           {error && (
@@ -179,6 +241,130 @@ export default function DashboardPage() {
                 <MaintenanceStats data={data} />
               </TabsContent>
             </Tabs>
+          )}
+
+          {data && (
+            <div className="mt-10 grid gap-6 md:grid-cols-3">
+              <div className="surface-card p-6">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+                  <span className="text-sm font-semibold text-primary">Target metrics</span>
+                </div>
+                <ul className="mt-4 space-y-2 text-sm text-[color:rgba(37,33,30,0.78)]">
+                  <li className="flex justify-between"><span>Occupancy</span><span className="font-semibold text-primary">85-95%</span></li>
+                  <li className="flex justify-between"><span>Response time</span><span className="font-semibold text-primary">&lt; 24h</span></li>
+                  <li className="flex justify-between"><span>Retention</span><span className="font-semibold text-primary">&gt; 80%</span></li>
+                </ul>
+              </div>
+              <div className="surface-card p-6">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 animate-pulse rounded-full bg-secondary" />
+                  <span className="text-sm font-semibold text-secondary">Performance gains</span>
+                </div>
+                <ul className="mt-4 space-y-2 text-sm text-[color:rgba(37,33,30,0.78)]">
+                  <li className="flex justify-between"><span>Vacancy</span><span className="font-semibold text-secondary">-60%</span></li>
+                  <li className="flex justify-between"><span>Service speed</span><span className="font-semibold text-secondary">+75%</span></li>
+                  <li className="flex justify-between"><span>Portfolio NOI</span><span className="font-semibold text-secondary">+20%</span></li>
+                </ul>
+              </div>
+              <div className="surface-card p-6">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+                  <span className="text-sm font-semibold text-primary">Systems online</span>
+                </div>
+                <ul className="mt-4 space-y-2 text-sm text-[color:rgba(37,33,30,0.78)]">
+                  <li>• Resident portal uptime 99.98%</li>
+                  <li>• Maintenance triage staffed 24/7</li>
+                  <li>• Compliance monitoring active in 15 states</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {marketData && (
+            <div className="mt-10 rounded-3xl border border-border/80 bg-card/80 p-6 shadow-[0_30px_60px_rgba(15,61,53,0.08)]">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="eyebrow text-secondary">Market intelligence</p>
+                  <h3 className="text-2xl font-heading text-foreground">Latest property market snapshot</h3>
+                  <p className="text-sm text-[color:rgba(37,33,30,0.65)]">
+                    Updated {new Date(marketData.fetched_at).toLocaleString()} from {marketData.source}.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => refreshMarketDataMutation.mutate()}
+                  disabled={refreshMarketDataMutation.isPending}
+                  className="rounded-full bg-secondary text-secondary-foreground"
+                >
+                  {refreshMarketDataMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                  )}
+                  {refreshMarketDataMutation.isPending ? "Refreshing..." : "Refresh market data"}
+                </Button>
+              </div>
+
+              <div className="mt-6 grid gap-6 md:grid-cols-4">
+                <div className="rounded-2xl bg-background/80 p-4 shadow-sm">
+                  <p className="text-sm text-muted-foreground">Listing price</p>
+                  <p className="mt-2 text-2xl font-semibold text-foreground">
+                    {marketData.listing_price ? `$${marketData.listing_price.toLocaleString()}` : '—'}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-background/80 p-4 shadow-sm">
+                  <p className="text-sm text-muted-foreground">Rent estimate</p>
+                  <p className="mt-2 text-2xl font-semibold text-foreground">
+                    {marketData.rent_estimate ? `$${marketData.rent_estimate.toLocaleString()}` : '—'}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-background/80 p-4 shadow-sm">
+                  <p className="text-sm text-muted-foreground">Price per sqft</p>
+                  <p className="mt-2 text-2xl font-semibold text-foreground">
+                    {marketData.price_per_sqft ? `$${marketData.price_per_sqft.toFixed(0)}` : '—'}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-background/80 p-4 shadow-sm">
+                  <p className="text-sm text-muted-foreground">Confidence</p>
+                  <p className="mt-2 text-2xl font-semibold text-foreground">
+                    {marketData.confidence_score ? `${(marketData.confidence_score * 100).toFixed(0)}%` : '—'}
+                  </p>
+                </div>
+              </div>
+
+              {marketData.comparables && marketData.comparables.length > 0 && (
+                <div className="mt-8">
+                  <h4 className="text-lg font-semibold text-foreground">Top comparable listings</h4>
+                  <div className="mt-4 grid gap-4 md:grid-cols-3">
+                    {marketData.comparables.slice(0, 3).map((comp: any) => (
+                      <a
+                        key={comp.url}
+                        href={comp.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group rounded-2xl border border-border/60 bg-background/70 p-4 transition-all hover:border-primary/60 hover:bg-primary/5"
+                      >
+                        <p className="text-sm font-semibold text-primary group-hover:underline">{comp.title}</p>
+                        <p className="mt-2 text-sm text-muted-foreground">{comp.address}</p>
+                        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+                          {comp.price && <span className="font-semibold text-foreground">${comp.price.toLocaleString()}</span>}
+                          {comp.beds && <span>{comp.beds} bd</span>}
+                          {comp.baths && <span>{comp.baths} ba</span>}
+                          {comp.square_feet && <span>{comp.square_feet.toLocaleString()} sqft</span>}
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {marketFetching && !marketData && (
+            <div className="mt-10 flex items-center justify-center gap-3 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Fetching market intelligence...
+            </div>
           )}
 
           {data && (

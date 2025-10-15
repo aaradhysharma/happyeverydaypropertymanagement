@@ -218,3 +218,49 @@ class AuditLog(models.Model):
     def __str__(self):
         return f"{self.user} - {self.action} - {self.resource_type} - {self.timestamp}"
 
+
+class PropertyMarketSnapshot(models.Model):
+    """Weekly market snapshot data for a property"""
+    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='market_snapshots')
+    source = models.CharField(max_length=100, default='zillow')
+    source_url = models.URLField(blank=True)
+    fetched_at = models.DateTimeField(auto_now_add=True)
+    listing_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    rent_estimate = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    price_per_sqft = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    beds = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
+    baths = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
+    square_feet = models.IntegerField(null=True, blank=True)
+    year_built = models.IntegerField(null=True, blank=True)
+    lot_size_sqft = models.IntegerField(null=True, blank=True)
+    confidence_score = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True)
+    meta = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ['-fetched_at']
+        indexes = [models.Index(fields=['property', '-fetched_at'])]
+
+    def __str__(self):
+        return f"{self.property.name} snapshot @ {self.fetched_at:%Y-%m-%d}" 
+
+
+class ComparableListing(models.Model):
+    """Comparable listings captured during market scraping"""
+    snapshot = models.ForeignKey(PropertyMarketSnapshot, on_delete=models.CASCADE, related_name='comparables')
+    title = models.CharField(max_length=255)
+    address = models.CharField(max_length=255, blank=True)
+    distance_miles = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    rent = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    beds = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
+    baths = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
+    square_feet = models.IntegerField(null=True, blank=True)
+    property_type = models.CharField(max_length=100, blank=True)
+    url = models.URLField()
+    meta = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ['price']
+
+    def __str__(self):
+        return f"Comparable: {self.title} ({self.price})"

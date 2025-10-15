@@ -37,6 +37,12 @@ export const analyticsApi = {
   
   getProperties: () => 
     api.get('/api/analytics/properties'),
+
+  refreshMarketData: () =>
+    api.post('/api/analytics/market-data/refresh'),
+
+  getLatestMarketData: (propertyId: number, includeComparables = true) =>
+    api.get('/api/analytics/market-data/latest', { params: { property_id: propertyId, include_comparables: includeComparables } }),
 };
 
 // Inspections API

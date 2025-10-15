@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Happy Everyday Property Management API",
     description="AI-Powered Property Management System",
-    version="0.0.1",
+    version="0.0.2",
     lifespan=lifespan
 )
 
@@ -47,7 +47,7 @@ async def root():
     """Root endpoint"""
     return {
         "name": "Happy Everyday Property Management API",
-        "version": "0.0.1",
+        "version": "0.0.2",
         "status": "operational"
     }
 
@@ -55,7 +55,7 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "version": "0.0.1"}
+    return {"status": "healthy", "version": "0.0.2"}
 
 
 # Include routers

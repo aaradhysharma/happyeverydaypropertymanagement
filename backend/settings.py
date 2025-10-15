@@ -94,3 +94,10 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 
+CELERY_BEAT_SCHEDULE = {
+    'weekly-property-market-scrape': {
+        'task': 'tasks.scrape_scheduler.scrape_property_market',
+        'schedule': 60 * 60 * 24 * 7,
+    },
+}
+

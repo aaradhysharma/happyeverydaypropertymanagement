@@ -1,10 +1,12 @@
 """
 FastAPI endpoints for analytics and BI dashboard
 """
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, BackgroundTasks
 from typing import Optional
 from datetime import datetime
 from analytics.kpi_calculator import KPICalculator
+from tasks import scrape_property_market
+from core.models import PropertyMarketSnapshot
 
 router = APIRouter()
 
@@ -20,6 +22,68 @@ async def get_dashboard_summary(
     try:
         summary = KPICalculator.get_dashboard_summary(property_id)
         return summary
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/market-data/refresh")
+async def refresh_market_data(background_tasks: BackgroundTasks):
+    """Trigger market data scraping task."""
+    try:
+        background_tasks.add_task(scrape_property_market.delay)
+        return {"status": "queued"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/market-data/latest")
+async def get_latest_market_data(
+    property_id: int = Query(..., description="Property ID to retrieve market data for"),
+    include_comparables: bool = Query(True, description="Include comparable listings")
+):
+    try:
+        snapshot = PropertyMarketSnapshot.objects.filter(property_id=property_id).prefetch_related('comparables').first()
+        if not snapshot:
+            raise HTTPException(status_code=404, detail="No market data available")
+
+        data = {
+            "property_id": property_id,
+            "source": snapshot.source,
+            "source_url": snapshot.source_url,
+            "fetched_at": snapshot.fetched_at,
+            "listing_price": snapshot.listing_price,
+            "rent_estimate": snapshot.rent_estimate,
+            "price_per_sqft": snapshot.price_per_sqft,
+            "beds": snapshot.beds,
+            "baths": snapshot.baths,
+            "square_feet": snapshot.square_feet,
+            "year_built": snapshot.year_built,
+            "lot_size_sqft": snapshot.lot_size_sqft,
+            "confidence_score": snapshot.confidence_score,
+            "meta": snapshot.meta,
+        }
+
+        if include_comparables:
+            data["comparables"] = [
+                {
+                    "title": comp.title,
+                    "address": comp.address,
+                    "distance_miles": comp.distance_miles,
+                    "price": comp.price,
+                    "rent": comp.rent,
+                    "beds": comp.beds,
+                    "baths": comp.baths,
+                    "square_feet": comp.square_feet,
+                    "property_type": comp.property_type,
+                    "url": comp.url,
+                    "meta": comp.meta,
+                }
+                for comp in snapshot.comparables.all()
+            ]
+
+        return data
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
