@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { analyticsApi } from "@/lib/api";
 import { 
   Building2, MapPin, TrendingUp, AlertTriangle, ShieldAlert, 
-  UtensilsCrossed, Briefcase, Home, DollarSign, Calendar, ArrowLeft 
+  UtensilsCrossed, Briefcase, Home, DollarSign, Calendar, ArrowLeft,
+  Loader2, RefreshCw 
 } from "lucide-react";
 import { 
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -124,8 +127,59 @@ const marketMetrics = {
 
 const COLORS = ["#0f3d35", "#c8643c", "#4a7c7e", "#d4976c", "#2c5f5f", "#999999"];
 
+type MarketSnapshot = {
+  fetched_at: string;
+  source: string;
+  source_url?: string;
+  listing_price?: number | null;
+  rent_estimate?: number | null;
+  price_per_sqft?: number | null;
+  confidence_score?: number | null;
+  beds?: number | null;
+  baths?: number | null;
+  square_feet?: number | null;
+  comparables?: Array<{
+    title: string;
+    url: string;
+    price?: number | null;
+    beds?: number | null;
+    baths?: number | null;
+    square_feet?: number | null;
+  }>;
+};
+
+const PROPERTY_ID = 1;
+
+const formatCurrency = (value?: number | null) =>
+  value != null ? `$${Number(value).toLocaleString()}` : "—";
+
+const formatPercent = (value?: number | null) =>
+  value != null ? `${(Number(value) * 100).toFixed(0)}%` : "—";
+
 export default function YanktonPropertyReport() {
   const [activeTab, setActiveTab] = useState("overview");
+  const queryClient = useQueryClient();
+
+  const { data: marketSnapshot, isFetching: marketSnapshotFetching } = useQuery<MarketSnapshot | null>({
+    queryKey: ["market-data", PROPERTY_ID],
+    queryFn: async () => {
+      try {
+        const response = await analyticsApi.getLatestMarketData(PROPERTY_ID);
+        return response.data as MarketSnapshot;
+      } catch {
+        return null;
+      }
+    },
+    staleTime: 1000 * 60 * 60,
+    retry: false,
+  });
+
+  const refreshMarketDataMutation = useMutation({
+    mutationFn: analyticsApi.refreshMarketData,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["market-data", PROPERTY_ID] });
+    },
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -144,9 +198,23 @@ export default function YanktonPropertyReport() {
               <h1 className="text-xl font-heading text-foreground">Yankton, SD Investment</h1>
             </div>
           </div>
-          <Link href="/dashboard">
-            <Button className="button-primary">Dashboard</Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard">
+              <Button className="button-primary">Dashboard</Button>
+            </Link>
+            <Button
+              onClick={() => refreshMarketDataMutation.mutate()}
+              disabled={refreshMarketDataMutation.isPending}
+              className="rounded-full bg-secondary/10 px-5 py-2 text-sm font-semibold text-secondary transition-colors hover:bg-secondary/20"
+            >
+              {refreshMarketDataMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              {refreshMarketDataMutation.isPending ? "Updating market" : "Update market data"}
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -485,6 +553,106 @@ export default function YanktonPropertyReport() {
 
           {/* Market Data Tab */}
           <TabsContent value="market" className="space-y-8">
+            {marketSnapshotFetching && (
+              <Card className="surface-card border border-border/70">
+                <CardContent className="flex items-center gap-3 p-4 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Fetching live market snapshot...
+                </CardContent>
+              </Card>
+            )}
+
+            {marketSnapshot && (
+              <Card className="surface-card border border-primary/30 bg-primary/5">
+                <CardContent className="p-6">
+                  <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="eyebrow text-secondary">Live market snapshot</p>
+                      <h3 className="text-2xl font-heading text-foreground">
+                        Updated {new Date(marketSnapshot.fetched_at).toLocaleString()}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Source: {marketSnapshot.source}
+                      </p>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="rounded-xl bg-background/90 p-4 shadow-sm">
+                        <p className="text-xs text-muted-foreground">Listing price</p>
+                        <p className="mt-1 text-xl font-semibold text-foreground">{formatCurrency(marketSnapshot.listing_price)}</p>
+                      </div>
+                      <div className="rounded-xl bg-background/90 p-4 shadow-sm">
+                        <p className="text-xs text-muted-foreground">Rent estimate</p>
+                        <p className="mt-1 text-xl font-semibold text-foreground">{formatCurrency(marketSnapshot.rent_estimate)}</p>
+                      </div>
+                      <div className="rounded-xl bg-background/90 p-4 shadow-sm">
+                        <p className="text-xs text-muted-foreground">Price per sqft</p>
+                        <p className="mt-1 text-xl font-semibold text-foreground">
+                          {marketSnapshot.price_per_sqft != null
+                            ? `$${Number(marketSnapshot.price_per_sqft).toFixed(0)}`
+                            : "—"}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-background/90 p-4 shadow-sm">
+                        <p className="text-xs text-muted-foreground">Confidence score</p>
+                        <p className="mt-1 text-xl font-semibold text-foreground">
+                          {formatPercent(marketSnapshot.confidence_score)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  {marketSnapshot.comparables && marketSnapshot.comparables.length > 0 && (
+                    <div className="mt-6">
+                      <p className="text-sm font-semibold text-muted-foreground mb-3">Top comparable listings</p>
+                      <div className="grid gap-4 md:grid-cols-3">
+                        {marketSnapshot.comparables.slice(0, 3).map((comp) => (
+                          <a
+                            key={comp.url}
+                            href={comp.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-2xl border border-border/60 bg-background/80 p-4 transition-all hover:border-primary/60 hover:bg-primary/5"
+                          >
+                            <p className="text-sm font-semibold text-primary">{comp.title}</p>
+                            <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                              {comp.price != null && <span className="font-semibold text-foreground">{formatCurrency(comp.price)}</span>}
+                              {comp.beds != null && <span>{comp.beds} bd</span>}
+                              {comp.baths != null && <span>{comp.baths} ba</span>}
+                              {comp.square_feet != null && <span>{comp.square_feet.toLocaleString()} sqft</span>}
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {!marketSnapshot && !marketSnapshotFetching && (
+              <Card className="surface-card border border-border/70">
+                <CardContent className="flex items-center justify-between gap-4 p-4">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">No live snapshot yet</p>
+                    <p className="text-xs text-muted-foreground">
+                      Trigger an update to fetch the latest market intelligence for this property.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => refreshMarketDataMutation.mutate()}
+                    disabled={refreshMarketDataMutation.isPending}
+                    className="rounded-full bg-secondary/10 px-5 py-2 text-sm font-semibold text-secondary transition-colors hover:bg-secondary/20"
+                  >
+                    {refreshMarketDataMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                    )}
+                    {refreshMarketDataMutation.isPending ? "Updating..." : "Fetch market data"}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Market Overview Banner */}
             <Card className="surface-card bg-primary/5 border-l-4 border-l-primary">
               <CardContent className="p-6">
