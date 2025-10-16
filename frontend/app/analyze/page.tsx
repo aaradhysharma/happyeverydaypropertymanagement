@@ -252,13 +252,33 @@ export default function AnalyzePage() {
             </div>
           </div>
           <nav className="flex items-center gap-3">
+            <Link href="/about">
+              <Button variant="ghost" className="rounded-full px-4 py-2 text-sm font-semibold">
+                About
+              </Button>
+            </Link>
+            <Link href="/analyze">
+              <Button variant="ghost" className="rounded-full px-4 py-2 text-sm font-semibold">
+                Analysis
+              </Button>
+            </Link>
+            <Link href="/technology">
+              <Button variant="ghost" className="rounded-full px-4 py-2 text-sm font-semibold">
+                Technology
+              </Button>
+            </Link>
             <Link href="/properties">
-              <Button variant="ghost" className="rounded-full px-5 py-2 text-sm font-semibold">
-                Portfolio
+              <Button variant="ghost" className="rounded-full px-4 py-2 text-sm font-semibold">
+                Properties
+              </Button>
+            </Link>
+            <Link href="/map">
+              <Button variant="ghost" className="rounded-full px-4 py-2 text-sm font-semibold">
+                Map
               </Button>
             </Link>
             <Link href="/dashboard">
-              <Button className="button-primary">Dashboard</Button>
+              <Button className="button-primary">Client Portal</Button>
             </Link>
           </nav>
         </div>
