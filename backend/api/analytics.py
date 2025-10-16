@@ -4,11 +4,27 @@ FastAPI endpoints for analytics and BI dashboard
 from fastapi import APIRouter, Query, HTTPException, BackgroundTasks
 from typing import Optional
 from datetime import datetime
+from pydantic import BaseModel
 from analytics.kpi_calculator import KPICalculator
 from tasks import scrape_property_market
 from core.models import PropertyMarketSnapshot
+from services.property_analyzer import PropertyAnalyzer
 
 router = APIRouter()
+
+
+class PropertyAnalysisRequest(BaseModel):
+    address: str
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
+
+
+class PropertyAnalysisResponse(BaseModel):
+    analysis_id: str
+    address: str
+    status: str
+    estimated_completion_time: int  # minutes
 
 
 @router.get("/dashboard")
@@ -202,6 +218,53 @@ async def get_properties_list():
             'id', 'name', 'city', 'state', 'total_units', 'property_type'
         )
         return {"properties": list(properties)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/analyze-property", response_model=PropertyAnalysisResponse)
+async def analyze_property(request: PropertyAnalysisRequest, background_tasks: BackgroundTasks):
+    """
+    Start comprehensive property analysis for any address
+    """
+    try:
+        # Generate unique analysis ID
+        import uuid
+        analysis_id = str(uuid.uuid4())
+        
+        # Start background analysis
+        background_tasks.add_task(
+            PropertyAnalyzer.analyze_property_comprehensive,
+            analysis_id,
+            request.address,
+            request.city,
+            request.state,
+            request.zip_code
+        )
+        
+        return PropertyAnalysisResponse(
+            analysis_id=analysis_id,
+            address=request.address,
+            status="analyzing",
+            estimated_completion_time=5  # minutes
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/property-analysis/{analysis_id}")
+async def get_property_analysis(analysis_id: str):
+    """
+    Get property analysis results by analysis ID
+    """
+    try:
+        analysis = PropertyAnalyzer.get_analysis_result(analysis_id)
+        if not analysis:
+            raise HTTPException(status_code=404, detail="Analysis not found")
+        
+        return analysis
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -43,6 +43,13 @@ export const analyticsApi = {
 
   getLatestMarketData: (propertyId: number, includeComparables = true) =>
     api.get('/api/analytics/market-data/latest', { params: { property_id: propertyId, include_comparables: includeComparables } }),
+
+  // Property Analysis API
+  analyzeProperty: (address: string, city?: string, state?: string, zipCode?: string) =>
+    api.post('/api/analytics/analyze-property', { address, city, state, zip_code: zipCode }),
+
+  getPropertyAnalysis: (analysisId: string) =>
+    api.get(`/api/analytics/property-analysis/${analysisId}`),
 };
 
 // Inspections API
