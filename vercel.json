@@ -13,8 +13,7 @@
     }
   ],
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://happyeveryday-backend.vercel.app",
-    "NEXT_PUBLIC_VERSION": "0.0.6"
+    "NEXT_PUBLIC_API_URL": "https://backend-7qj93yo2u-aaradhys-projects.vercel.app",
+        "NEXT_PUBLIC_VERSION": "0.1.0"
   }
 }
-
