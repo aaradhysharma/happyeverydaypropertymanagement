@@ -28,35 +28,102 @@ function AddressSearchInput({ onAddressSelect, onAnalyze }: {
   const [input, setInput] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPlacesReady, setIsPlacesReady] = useState(false);
+  const [placesError, setPlacesError] = useState<string | null>(null);
   const autocompleteService = useRef<any>(null);
   const placesService = useRef<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const latestQueryRef = useRef<string>("");
+
+  const initializePlaces = () => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    const google = (window as any).google;
+    if (google?.maps?.places) {
+      autocompleteService.current = new google.maps.places.AutocompleteService();
+      placesService.current = new google.maps.places.PlacesService(
+        document.createElement("div")
+      );
+      setIsPlacesReady(true);
+      setPlacesError(null);
+      return true;
+    }
+
+    return false;
+  };
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).google) {
-      autocompleteService.current = new (window as any).google.maps.places.AutocompleteService();
-      placesService.current = new (window as any).google.maps.places.PlacesService(
-        document.createElement('div')
-      );
+    if (initializePlaces()) {
+      return;
     }
+
+    const handleScriptLoaded = () => {
+      if (!initializePlaces()) {
+        setPlacesError("Google Places is available but failed to initialize.");
+      }
+    };
+
+    const handleScriptError = () => {
+      setPlacesError("Unable to load Google Places suggestions right now.");
+    };
+
+    window.addEventListener("google-maps-loaded", handleScriptLoaded);
+    window.addEventListener("google-maps-error", handleScriptError);
+
+    return () => {
+      window.removeEventListener("google-maps-loaded", handleScriptLoaded);
+      window.removeEventListener("google-maps-error", handleScriptError);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (isPlacesReady && latestQueryRef.current.length > 2) {
+      fetchPredictions(latestQueryRef.current);
+    }
+  }, [isPlacesReady]);
+
+  const fetchPredictions = (value: string) => {
+    if (!autocompleteService.current) {
+      return;
+    }
+
+    autocompleteService.current.getPlacePredictions(
+      {
+        input: value,
+        types: ["address"],
+      },
+      (predictions: any[], status: any) => {
+        const google = (window as any).google;
+        const okStatus = google?.maps?.places?.PlacesServiceStatus?.OK;
+        if (status === okStatus) {
+          setSuggestions(predictions || []);
+        } else {
+          setSuggestions([]);
+        }
+      }
+    );
+  };
+
+  useEffect(() => {
+    return () => {
+      setSuggestions([]);
+    };
   }, []);
 
   const handleInputChange = (value: string) => {
     setInput(value);
-    if (value.length > 2 && autocompleteService.current) {
-      autocompleteService.current.getPlacePredictions(
-        {
-          input: value,
-          types: ['address'],
-        },
-        (predictions: any[], status: any) => {
-          if (status === (window as any).google.maps.places.PlacesServiceStatus.OK) {
-            setSuggestions(predictions || []);
-          }
-        }
-      );
-    } else {
+    latestQueryRef.current = value;
+
+    if (value.length <= 2) {
       setSuggestions([]);
+      return;
+    }
+
+    if (isPlacesReady) {
+      fetchPredictions(value);
     }
   };
 
@@ -85,10 +152,11 @@ function AddressSearchInput({ onAddressSelect, onAnalyze }: {
           onChange={(e) => handleInputChange(e.target.value)}
           placeholder="Enter property address (e.g., 123 Main St, City, State)"
           className="w-full pl-12 pr-32 py-4 text-lg border border-border rounded-2xl bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          aria-disabled={!isPlacesReady && !placesError}
         />
         <Button
           onClick={handleAnalyze}
-          disabled={!input.trim() || isLoading}
+          disabled={!input.trim() || isLoading || (!isPlacesReady && !placesError)}
           className="absolute right-2 top-2 bottom-2 px-6 rounded-xl"
         >
           {isLoading ? (
@@ -102,6 +170,18 @@ function AddressSearchInput({ onAddressSelect, onAnalyze }: {
         </Button>
       </div>
       
+      {!isPlacesReady && !placesError && (
+        <p className="mt-3 text-sm text-muted-foreground text-center">
+          Loading Google location suggestions…
+        </p>
+      )}
+
+      {placesError && (
+        <p className="mt-3 text-sm text-destructive text-center">
+          {placesError}
+        </p>
+      )}
+
       {suggestions.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-lg z-10 max-h-60 overflow-y-auto">
           {suggestions.map((suggestion) => (
@@ -370,7 +450,7 @@ export default function AnalyzePage() {
             © 2026 Happy Everyday Property Management. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground">
-            Powered by Google AI, Gemini, and comprehensive data analysis v0.0.3
+            Powered by Google AI, Gemini, and comprehensive data analysis v0.0.4
           </p>
         </div>
       </footer>

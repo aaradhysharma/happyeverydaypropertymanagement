@@ -2,7 +2,7 @@
 const nextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
-    NEXT_PUBLIC_VERSION: '0.0.3'
+    NEXT_PUBLIC_VERSION: '0.0.4'
   },
   images: {
     domains: ['localhost'],

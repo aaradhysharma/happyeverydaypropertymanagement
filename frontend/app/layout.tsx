@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Serif_Display, Manrope } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { VersionDisplay } from "@/components/VersionDisplay";
@@ -30,10 +31,20 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${heading.variable} ${body.variable}`}>
       <head>
-        <script
+        <Script
+          id="google-maps-script"
           src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
-          async
-          defer
+          strategy="afterInteractive"
+          onLoad={() => {
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new Event("google-maps-loaded"));
+            }
+          }}
+          onError={() => {
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new Event("google-maps-error"));
+            }
+          }}
         />
       </head>
       <body className="font-body bg-background text-foreground antialiased">
