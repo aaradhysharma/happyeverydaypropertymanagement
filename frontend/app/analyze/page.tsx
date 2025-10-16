@@ -81,18 +81,14 @@ function AddressSearchInput({ onAddressSelect, onAnalyze }: {
   return (
     <div className="relative w-full max-w-2xl mx-auto">
       <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-          <Search className="h-5 w-5 text-muted-foreground" />
-        </div>
-        
-        {/* Use the new PlaceAutocompleteElement */}
+        {/* Use the new PlaceAutocompleteElement - it has its own search icon */}
         <gmp-place-autocomplete
           ref={autocompleteRef}
           placeholder="Enter property address (e.g., 123 Main St, City, State)"
-          className="w-full pl-12 pr-32 py-4 text-lg border border-border rounded-2xl bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          className="w-full pr-32 py-4 text-lg border border-border rounded-2xl bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           style={{
             width: '100%',
-            paddingLeft: '3rem',
+            paddingLeft: '1rem',
             paddingRight: '8rem',
             paddingTop: '1rem',
             paddingBottom: '1rem',
@@ -322,6 +318,7 @@ export default function AnalyzePage() {
                     const demoAddress = "6737 Arbor Dr, Miramar, FL 33023";
                     setSelectedAddress(demoAddress);
                     handleAddressSelect(demoAddress);
+                    handleAnalyze(demoAddress);
                   }}
                   className="rounded-xl px-6 py-2"
                 >
@@ -404,7 +401,7 @@ export default function AnalyzePage() {
             © 2026 Happy Everyday Property Management. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground">
-            Powered by Google AI, Gemini, and comprehensive data analysis v0.0.9
+            Powered by Google AI, Gemini, and comprehensive data analysis v0.1.0
           </p>
         </div>
       </footer>
