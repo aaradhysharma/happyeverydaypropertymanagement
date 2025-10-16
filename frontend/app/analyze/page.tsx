@@ -56,28 +56,57 @@ function AddressSearchInput({ onAddressSelect, onAnalyze }: {
 
   useEffect(() => {
     if (initializePlaces()) {
-      return;
+      return undefined;
     }
 
+    let cancelled = false;
+
     const handleScriptLoaded = () => {
-      if (!initializePlaces()) {
+      if (!cancelled && !initializePlaces()) {
         setPlacesError("Google Places is available but failed to initialize.");
       }
     };
 
     const handleScriptError = () => {
-      setPlacesError("Unable to load Google Places suggestions right now.");
+      if (!cancelled) {
+        setPlacesError("Unable to load Google Places suggestions right now.");
+      }
     };
 
-    window.addEventListener("google-maps-loaded", handleScriptLoaded);
-    window.addEventListener("google-maps-error", handleScriptError);
+    if (typeof window !== "undefined") {
+      const scriptEl = document.getElementById("google-maps-script") as HTMLScriptElement | null;
 
-    return () => {
-      window.removeEventListener("google-maps-loaded", handleScriptLoaded);
-      window.removeEventListener("google-maps-error", handleScriptError);
-    };
+      if (scriptEl) {
+        scriptEl.addEventListener("load", handleScriptLoaded);
+        scriptEl.addEventListener("error", handleScriptError);
+      }
+
+      const intervalId = window.setInterval(() => {
+        if (!cancelled && initializePlaces()) {
+          window.clearInterval(intervalId);
+        }
+      }, 1000);
+
+      const timeoutId = window.setTimeout(() => {
+        if (!cancelled && !isPlacesReady) {
+          setPlacesError("Google Places is taking longer than expected to load.");
+        }
+      }, 10000);
+
+      return () => {
+        cancelled = true;
+        if (scriptEl) {
+          scriptEl.removeEventListener("load", handleScriptLoaded);
+          scriptEl.removeEventListener("error", handleScriptError);
+        }
+        window.clearInterval(intervalId);
+        window.clearTimeout(timeoutId);
+      };
+    }
+
+    return undefined;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isPlacesReady]);
 
   useEffect(() => {
     if (isPlacesReady && latestQueryRef.current.length > 2) {

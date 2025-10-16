@@ -35,16 +35,6 @@ export default function RootLayout({
           id="google-maps-script"
           src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
           strategy="afterInteractive"
-          onLoad={() => {
-            if (typeof window !== "undefined") {
-              window.dispatchEvent(new Event("google-maps-loaded"));
-            }
-          }}
-          onError={() => {
-            if (typeof window !== "undefined") {
-              window.dispatchEvent(new Event("google-maps-error"));
-            }
-          }}
         />
       </head>
       <body className="font-body bg-background text-foreground antialiased">
