@@ -259,7 +259,7 @@ export default function AnalyzePage() {
             </Link>
             <Link href="/dashboard">
               <Button className="button-primary">Dashboard</Button>
-            </Button>
+            </Link>
           </nav>
         </div>
       </header>
@@ -350,7 +350,7 @@ export default function AnalyzePage() {
             © 2026 Happy Everyday Property Management. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground">
-            Powered by Google AI, Gemini, and comprehensive data analysis
+            Powered by Google AI, Gemini, and comprehensive data analysis v0.0.3
           </p>
         </div>
       </footer>
