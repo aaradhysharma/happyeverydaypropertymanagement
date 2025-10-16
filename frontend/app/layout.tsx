@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { DM_Serif_Display, Manrope } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { VersionDisplay } from "@/components/VersionDisplay";
+import Script from "next/script"; // Import Script from next/script
 
 const heading = DM_Serif_Display({
   subsets: ["latin"],
@@ -30,20 +30,32 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${heading.variable} ${body.variable}`}>
-      <head>
-        <Script
-          id="google-maps-script"
-          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initGoogleMaps`}
-          strategy="afterInteractive"
-          onLoad={() => {
-            // Initialize the new Google Maps API
-            (window as any).initGoogleMaps = () => {
-              window.dispatchEvent(new Event('google-maps-loaded'));
-            };
-          }}
-          onError={() => window.dispatchEvent(new Event('google-maps-error'))}
-        />
-      </head>
+          <head>
+            <Script
+              id="google-maps-script"
+              src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initGoogleMaps`}
+              strategy="afterInteractive"
+            />
+            <Script
+              id="google-maps-init"
+              strategy="afterInteractive"
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.initGoogleMaps = () => {
+                    window.dispatchEvent(new Event('google-maps-loaded'));
+                  };
+                  
+                  // Handle script load errors
+                  const script = document.getElementById('google-maps-script');
+                  if (script) {
+                    script.onerror = () => {
+                      window.dispatchEvent(new Event('google-maps-error'));
+                    };
+                  }
+                `,
+              }}
+            />
+          </head>
       <body className="font-body bg-background text-foreground antialiased">
         <Providers>
           {children}
@@ -53,4 +65,3 @@ export default function RootLayout({
     </html>
   );
 }
-
