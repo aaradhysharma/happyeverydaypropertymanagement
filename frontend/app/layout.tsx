@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Serif_Display, Manrope } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { VersionDisplay } from "@/components/VersionDisplay";
 
 const heading = DM_Serif_Display({
   subsets: ["latin"],
@@ -29,7 +30,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${heading.variable} ${body.variable}`}>
       <body className="font-body bg-background text-foreground antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <VersionDisplay />
+        </Providers>
       </body>
     </html>
   );

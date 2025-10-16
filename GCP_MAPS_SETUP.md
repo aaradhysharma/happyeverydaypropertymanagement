@@ -3,14 +3,21 @@
 ## Overview
 The `/map` page now uses Google Maps Platform to display an interactive map with property markers.
 
+## GCP Project Setup
+✅ **Project Created**: `happyeveryday-maps-2025`
+- Project ID: happyeveryday-maps-2025
+- Project Name: Happy Everyday Maps
+- APIs Enabled: Maps Backend, Maps Embed Backend
+
 ## Setup Steps
 
 ### 1. Get Google Maps API Key
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
+2. **Select Project**: `happyeveryday-maps-2025` (already created)
 3. Enable the following APIs:
-   - Maps JavaScript API
+   - ✅ Maps JavaScript API (maps-backend.googleapis.com)
+   - ✅ Maps Embed API (maps-embed-backend.googleapis.com)
    - Geocoding API (optional, for address lookup)
    - Places API (optional, for enhanced location data)
 
