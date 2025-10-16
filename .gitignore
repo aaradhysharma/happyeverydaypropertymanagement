@@ -77,3 +77,6 @@ coverage/
 .vercel
 
 .env*.local
+
+# Cursor AI
+.cursor/
