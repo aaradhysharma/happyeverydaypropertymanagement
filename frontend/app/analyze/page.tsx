@@ -1,85 +1,80 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-  Search, 
-  MapPin, 
-  Building2, 
-  TrendingUp, 
-  ArrowLeft,
-  Loader2,
+import {
+  Search,
+  MapPin,
   Sparkles,
-  BarChart3,
+  Loader2,
+  ArrowLeft,
   Shield,
+  BarChart3,
   UtensilsCrossed,
   DollarSign
 } from "lucide-react";
 import { analyticsApi } from "@/lib/api";
 import { PropertyAnalysisReport } from "@/components/PropertyAnalysisReport";
+import { AnalysisProgress } from "@/components/AnalysisProgress";
 
 // Google Places Autocomplete component using new PlaceAutocompleteElement
 function AddressSearchInput({ onAddressSelect, onAnalyze }: {
   onAddressSelect: (address: string) => void;
   onAnalyze: (address: string) => void;
 }) {
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isPlacesReady, setIsPlacesReady] = useState(false);
+  const autocompleteRef = useRef<HTMLInputElement>(null);
+  const [inputValue, setInputValue] = useState("");
+  const [isPlacesApiLoaded, setIsPlacesApiLoaded] = useState(false);
   const [placesError, setPlacesError] = useState<string | null>(null);
-  const autocompleteRef = useRef<any>(null);
 
   useEffect(() => {
-    const handleScriptLoaded = () => {
-      setIsPlacesReady(true);
+    const handleGoogleMapsLoaded = () => {
+      setIsPlacesApiLoaded(true);
       setPlacesError(null);
       
-      // Initialize the PlaceAutocompleteElement
+      // Initialize the new Place Autocomplete Element
       if (autocompleteRef.current) {
         const autocomplete = autocompleteRef.current;
         
-        // Configure the autocomplete
-        autocomplete.setAttribute('types', 'address');
-        autocomplete.setAttribute('placeholder', 'Enter property address (e.g., 123 Main St, City, State)');
-        
-        // Handle place selection
+        // Add event listeners for the new API
         autocomplete.addEventListener('gmp-placeselect', (event: any) => {
           const place = event.detail.place;
-          const address = place.formattedAddress || place.displayName || '';
-          setInput(address);
-          onAddressSelect(address);
+          if (place && place.formatted_address) {
+            setInputValue(place.formatted_address);
+            onAddressSelect(place.formatted_address);
+          }
+        });
+        
+        autocomplete.addEventListener('input', (event: any) => {
+          setInputValue(event.target.value);
+          onAddressSelect(event.target.value);
         });
       }
     };
 
-    const handleScriptError = () => {
+    const handleGoogleMapsError = () => {
       setPlacesError("Unable to load Google Places suggestions right now.");
     };
 
-    window.addEventListener("google-maps-loaded", handleScriptLoaded);
-    window.addEventListener("google-maps-error", handleScriptError);
+    window.addEventListener("google-maps-loaded", handleGoogleMapsLoaded);
+    window.addEventListener("google-maps-error", handleGoogleMapsError);
+
+    // Check if API is already loaded
+    if ((window as any).google?.maps?.places) {
+      handleGoogleMapsLoaded();
+    }
 
     return () => {
-      window.removeEventListener("google-maps-loaded", handleScriptLoaded);
-      window.removeEventListener("google-maps-error", handleScriptError);
+      window.removeEventListener("google-maps-loaded", handleGoogleMapsLoaded);
+      window.removeEventListener("google-maps-error", handleGoogleMapsError);
     };
   }, [onAddressSelect]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setInput(value);
-    
-    // Update the autocomplete element's value
-    if (autocompleteRef.current) {
-      autocompleteRef.current.value = value;
-    }
-  };
-
-  const handleAnalyze = () => {
-    if (input.trim()) {
-      onAnalyze(input.trim());
+  const handleAnalyzeClick = () => {
+    if (inputValue.trim()) {
+      onAnalyze(inputValue.trim());
     }
   };
 
@@ -107,37 +102,21 @@ function AddressSearchInput({ onAddressSelect, onAnalyze }: {
             backgroundColor: 'hsl(var(--background))',
             outline: 'none'
           }}
+          type-restrictions="address"
+          country="us"
         />
         
-        {/* Fallback input for when autocomplete isn't ready */}
-        {!isPlacesReady && (
-          <input
-            type="text"
-            value={input}
-            onChange={handleInputChange}
-            placeholder="Enter property address (e.g., 123 Main St, City, State)"
-            className="absolute inset-0 w-full pl-12 pr-32 py-4 text-lg border border-border rounded-2xl bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            disabled={!isPlacesReady && !placesError}
-          />
-        )}
-        
         <Button
-          onClick={handleAnalyze}
-          disabled={!input.trim() || isLoading}
-          className="absolute right-2 top-2 bottom-2 px-6 rounded-xl z-20"
+          onClick={handleAnalyzeClick}
+          disabled={!inputValue.trim() || !isPlacesApiLoaded}
+          className="absolute right-2 top-2 bottom-2 px-6 rounded-xl"
         >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Analyze
-            </>
-          )}
+          <Sparkles className="mr-2 h-4 w-4" />
+          Analyze
         </Button>
       </div>
 
-      {!isPlacesReady && !placesError && (
+      {!isPlacesApiLoaded && !placesError && (
         <p className="mt-3 text-sm text-muted-foreground text-center">
           Loading Google location suggestions…
         </p>
@@ -152,31 +131,45 @@ function AddressSearchInput({ onAddressSelect, onAnalyze }: {
   );
 }
 
-// Analysis Results component
-function AnalysisResults({ address, isLoading, analysisData }: {
+// Analysis Results component with progress tracking
+function AnalysisResults({ address, isLoading, analysisData, analysisId }: {
   address: string;
   isLoading: boolean;
   analysisData: any;
+  analysisId?: string | null;
 }) {
+  const [progress, setProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState("Starting analysis...");
+
+  // Poll for progress updates
+  useEffect(() => {
+    if (isLoading && analysisId) {
+      const pollInterval = setInterval(async () => {
+        try {
+          const response = await analyticsApi.getAnalysisProgress(analysisId);
+          const progressData = response.data;
+          
+          if (progressData.progress !== undefined) {
+            setProgress(progressData.progress);
+          }
+          if (progressData.current_step) {
+            setCurrentStep(progressData.current_step);
+          }
+        } catch (error) {
+          console.error("Error polling progress:", error);
+        }
+      }, 2000); // Poll every 2 seconds
+
+      return () => clearInterval(pollInterval);
+    }
+  }, [isLoading, analysisId]);
   if (isLoading) {
     return (
-      <div className="mt-8 max-w-4xl mx-auto">
-        <Card className="surface-card">
-          <CardContent className="p-8 text-center">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-            <h3 className="font-heading font-semibold text-foreground mb-2">
-              Analyzing Property
-            </h3>
-            <p className="text-muted-foreground">
-              Researching comprehensive data for {address}...
-            </p>
-            <div className="mt-4 text-sm text-muted-foreground">
-              This may take a few minutes while we gather market data, crime statistics, 
-              local amenities, and generate AI-powered insights.
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <AnalysisProgress 
+        progress={progress} 
+        currentStep={currentStep} 
+        address={address}
+      />
     );
   }
 
@@ -184,7 +177,6 @@ function AnalysisResults({ address, isLoading, analysisData }: {
     return (
       <div className="mt-8 max-w-6xl mx-auto">
         <PropertyAnalysisReport 
-          address={address}
           analysisData={analysisData}
         />
       </div>
@@ -198,6 +190,7 @@ export default function AnalyzePage() {
   const [selectedAddress, setSelectedAddress] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisData, setAnalysisData] = useState(null);
+  const [analysisId, setAnalysisId] = useState<string | null>(null);
 
   const handleAddressSelect = (address: string) => {
     setSelectedAddress(address);
@@ -210,7 +203,8 @@ export default function AnalyzePage() {
     try {
       // Call backend API to start analysis
       const response = await analyticsApi.analyzeProperty(address);
-      const analysisId = response.data.analysis_id;
+      const currentAnalysisId = response.data.analysis_id;
+      setAnalysisId(currentAnalysisId);
 
       // Poll for results
       const pollForResults = async () => {
@@ -219,7 +213,7 @@ export default function AnalyzePage() {
 
         while (attempts < maxAttempts) {
           try {
-            const resultResponse = await analyticsApi.getPropertyAnalysis(analysisId);
+            const resultResponse = await analyticsApi.getPropertyAnalysis(currentAnalysisId);
             const result = resultResponse.data;
 
             if (result.status === 'completed') {
@@ -315,10 +309,29 @@ export default function AnalyzePage() {
             market analysis, local amenities, and investment recommendations.
           </p>
 
-          <AddressSearchInput
-            onAddressSelect={handleAddressSelect}
-            onAnalyze={handleAnalyze}
-          />
+              <AddressSearchInput
+                onAddressSelect={handleAddressSelect}
+                onAnalyze={handleAnalyze}
+              />
+
+              {/* Demo Button */}
+              <div className="mt-6">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    const demoAddress = "6737 Arbor Dr, Miramar, FL 33023";
+                    setSelectedAddress(demoAddress);
+                    onAddressSelect(demoAddress);
+                  }}
+                  className="rounded-xl px-6 py-2"
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Try Demo Property
+                </Button>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Test with a real property in Miramar, FL
+                </p>
+              </div>
         </div>
 
         {/* Analysis Results */}
@@ -327,6 +340,7 @@ export default function AnalyzePage() {
             address={selectedAddress}
             isLoading={isAnalyzing}
             analysisData={analysisData}
+            analysisId={analysisId}
           />
         )}
 
@@ -390,7 +404,7 @@ export default function AnalyzePage() {
             © 2026 Happy Everyday Property Management. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground">
-            Powered by Google AI, Gemini, and comprehensive data analysis v0.0.4
+            Powered by Google AI, Gemini, and comprehensive data analysis v0.0.9
           </p>
         </div>
       </footer>
