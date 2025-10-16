@@ -321,7 +321,7 @@ export default function AnalyzePage() {
                   onClick={() => {
                     const demoAddress = "6737 Arbor Dr, Miramar, FL 33023";
                     setSelectedAddress(demoAddress);
-                    onAddressSelect(demoAddress);
+                    handleAddressSelect(demoAddress);
                   }}
                   className="rounded-xl px-6 py-2"
                 >
