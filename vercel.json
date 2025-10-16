@@ -14,7 +14,7 @@
   ],
   "env": {
     "NEXT_PUBLIC_API_URL": "https://happyeveryday-backend.vercel.app",
-    "NEXT_PUBLIC_VERSION": "0.0.4"
+    "NEXT_PUBLIC_VERSION": "0.0.5"
   }
 }
 

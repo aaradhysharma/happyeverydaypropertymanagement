@@ -20,146 +20,61 @@ import {
 import { analyticsApi } from "@/lib/api";
 import { PropertyAnalysisReport } from "@/components/PropertyAnalysisReport";
 
-// Google Places Autocomplete component
-function AddressSearchInput({ onAddressSelect, onAnalyze }: { 
+// Google Places Autocomplete component using new PlaceAutocompleteElement
+function AddressSearchInput({ onAddressSelect, onAnalyze }: {
   onAddressSelect: (address: string) => void;
   onAnalyze: (address: string) => void;
 }) {
   const [input, setInput] = useState("");
-  const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPlacesReady, setIsPlacesReady] = useState(false);
   const [placesError, setPlacesError] = useState<string | null>(null);
-  const autocompleteService = useRef<any>(null);
-  const placesService = useRef<any>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const latestQueryRef = useRef<string>("");
-
-  const initializePlaces = () => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-
-    const google = (window as any).google;
-    if (google?.maps?.places) {
-      autocompleteService.current = new google.maps.places.AutocompleteService();
-      placesService.current = new google.maps.places.PlacesService(
-        document.createElement("div")
-      );
-      setIsPlacesReady(true);
-      setPlacesError(null);
-      return true;
-    }
-
-    return false;
-  };
+  const autocompleteRef = useRef<any>(null);
 
   useEffect(() => {
-    if (initializePlaces()) {
-      return undefined;
-    }
-
-    let cancelled = false;
-
     const handleScriptLoaded = () => {
-      if (!cancelled && !initializePlaces()) {
-        setPlacesError("Google Places is available but failed to initialize.");
+      setIsPlacesReady(true);
+      setPlacesError(null);
+      
+      // Initialize the PlaceAutocompleteElement
+      if (autocompleteRef.current) {
+        const autocomplete = autocompleteRef.current;
+        
+        // Configure the autocomplete
+        autocomplete.setAttribute('types', 'address');
+        autocomplete.setAttribute('placeholder', 'Enter property address (e.g., 123 Main St, City, State)');
+        
+        // Handle place selection
+        autocomplete.addEventListener('gmp-placeselect', (event: any) => {
+          const place = event.detail.place;
+          const address = place.formattedAddress || place.displayName || '';
+          setInput(address);
+          onAddressSelect(address);
+        });
       }
     };
 
     const handleScriptError = () => {
-      if (!cancelled) {
-        setPlacesError("Unable to load Google Places suggestions right now.");
-      }
+      setPlacesError("Unable to load Google Places suggestions right now.");
     };
 
-    if (typeof window !== "undefined") {
-      const scriptEl = document.getElementById("google-maps-script") as HTMLScriptElement | null;
+    window.addEventListener("google-maps-loaded", handleScriptLoaded);
+    window.addEventListener("google-maps-error", handleScriptError);
 
-      if (scriptEl) {
-        scriptEl.addEventListener("load", handleScriptLoaded);
-        scriptEl.addEventListener("error", handleScriptError);
-      }
-
-      const intervalId = window.setInterval(() => {
-        if (!cancelled && initializePlaces()) {
-          window.clearInterval(intervalId);
-        }
-      }, 1000);
-
-      const timeoutId = window.setTimeout(() => {
-        if (!cancelled && !isPlacesReady) {
-          setPlacesError("Google Places is taking longer than expected to load.");
-        }
-      }, 10000);
-
-      return () => {
-        cancelled = true;
-        if (scriptEl) {
-          scriptEl.removeEventListener("load", handleScriptLoaded);
-          scriptEl.removeEventListener("error", handleScriptError);
-        }
-        window.clearInterval(intervalId);
-        window.clearTimeout(timeoutId);
-      };
-    }
-
-    return undefined;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPlacesReady]);
-
-  useEffect(() => {
-    if (isPlacesReady && latestQueryRef.current.length > 2) {
-      fetchPredictions(latestQueryRef.current);
-    }
-  }, [isPlacesReady]);
-
-  const fetchPredictions = (value: string) => {
-    if (!autocompleteService.current) {
-      return;
-    }
-
-    autocompleteService.current.getPlacePredictions(
-      {
-        input: value,
-        types: ["address"],
-      },
-      (predictions: any[], status: any) => {
-        const google = (window as any).google;
-        const okStatus = google?.maps?.places?.PlacesServiceStatus?.OK;
-        if (status === okStatus) {
-          setSuggestions(predictions || []);
-        } else {
-          setSuggestions([]);
-        }
-      }
-    );
-  };
-
-  useEffect(() => {
     return () => {
-      setSuggestions([]);
+      window.removeEventListener("google-maps-loaded", handleScriptLoaded);
+      window.removeEventListener("google-maps-error", handleScriptError);
     };
-  }, []);
+  }, [onAddressSelect]);
 
-  const handleInputChange = (value: string) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
     setInput(value);
-    latestQueryRef.current = value;
-
-    if (value.length <= 2) {
-      setSuggestions([]);
-      return;
+    
+    // Update the autocomplete element's value
+    if (autocompleteRef.current) {
+      autocompleteRef.current.value = value;
     }
-
-    if (isPlacesReady) {
-      fetchPredictions(value);
-    }
-  };
-
-  const handleSuggestionClick = (suggestion: any) => {
-    setInput(suggestion.description);
-    setSuggestions([]);
-    onAddressSelect(suggestion.description);
   };
 
   const handleAnalyze = () => {
@@ -171,22 +86,45 @@ function AddressSearchInput({ onAddressSelect, onAnalyze }: {
   return (
     <div className="relative w-full max-w-2xl mx-auto">
       <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
           <Search className="h-5 w-5 text-muted-foreground" />
         </div>
-        <input
-          ref={inputRef}
-          type="text"
-          value={input}
-          onChange={(e) => handleInputChange(e.target.value)}
+        
+        {/* Use the new PlaceAutocompleteElement */}
+        <gmp-place-autocomplete
+          ref={autocompleteRef}
           placeholder="Enter property address (e.g., 123 Main St, City, State)"
           className="w-full pl-12 pr-32 py-4 text-lg border border-border rounded-2xl bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-          aria-disabled={!isPlacesReady && !placesError}
+          style={{
+            width: '100%',
+            paddingLeft: '3rem',
+            paddingRight: '8rem',
+            paddingTop: '1rem',
+            paddingBottom: '1rem',
+            fontSize: '1.125rem',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: '1rem',
+            backgroundColor: 'hsl(var(--background))',
+            outline: 'none'
+          }}
         />
+        
+        {/* Fallback input for when autocomplete isn't ready */}
+        {!isPlacesReady && (
+          <input
+            type="text"
+            value={input}
+            onChange={handleInputChange}
+            placeholder="Enter property address (e.g., 123 Main St, City, State)"
+            className="absolute inset-0 w-full pl-12 pr-32 py-4 text-lg border border-border rounded-2xl bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            disabled={!isPlacesReady && !placesError}
+          />
+        )}
+        
         <Button
           onClick={handleAnalyze}
-          disabled={!input.trim() || isLoading || (!isPlacesReady && !placesError)}
-          className="absolute right-2 top-2 bottom-2 px-6 rounded-xl"
+          disabled={!input.trim() || isLoading}
+          className="absolute right-2 top-2 bottom-2 px-6 rounded-xl z-20"
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -198,7 +136,7 @@ function AddressSearchInput({ onAddressSelect, onAnalyze }: {
           )}
         </Button>
       </div>
-      
+
       {!isPlacesReady && !placesError && (
         <p className="mt-3 text-sm text-muted-foreground text-center">
           Loading Google location suggestions…
@@ -210,26 +148,11 @@ function AddressSearchInput({ onAddressSelect, onAnalyze }: {
           {placesError}
         </p>
       )}
-
-      {suggestions.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-lg z-10 max-h-60 overflow-y-auto">
-          {suggestions.map((suggestion) => (
-            <button
-              key={suggestion.place_id}
-              onClick={() => handleSuggestionClick(suggestion)}
-              className="w-full px-4 py-3 text-left hover:bg-accent border-b border-border last:border-b-0 flex items-center gap-3"
-            >
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span>{suggestion.description}</span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
 
-// Analysis Results Component
+// Analysis Results component
 function AnalysisResults({ address, isLoading, analysisData }: {
   address: string;
   isLoading: boolean;
@@ -237,50 +160,38 @@ function AnalysisResults({ address, isLoading, analysisData }: {
 }) {
   if (isLoading) {
     return (
-      <Card className="surface-card">
-        <CardContent className="p-12 text-center">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <div>
-              <h3 className="text-xl font-heading font-semibold text-foreground mb-2">
-                Analyzing Property...
-              </h3>
-              <p className="text-muted-foreground">
-                Our AI is researching crime data, market trends, demographics, and local amenities for:
-              </p>
-              <p className="font-semibold text-primary mt-2">{address}</p>
+      <div className="mt-8 max-w-4xl mx-auto">
+        <Card className="surface-card">
+          <CardContent className="p-8 text-center">
+            <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+            <h3 className="font-heading font-semibold text-foreground mb-2">
+              Analyzing Property
+            </h3>
+            <p className="text-muted-foreground">
+              Researching comprehensive data for {address}...
+            </p>
+            <div className="mt-4 text-sm text-muted-foreground">
+              This may take a few minutes while we gather market data, crime statistics, 
+              local amenities, and generate AI-powered insights.
             </div>
-            <div className="grid grid-cols-4 gap-4 mt-6">
-              <div className="text-center">
-                <Shield className="h-8 w-8 text-primary mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Crime Analysis</p>
-              </div>
-              <div className="text-center">
-                <BarChart3 className="h-8 w-8 text-primary mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Market Data</p>
-              </div>
-              <div className="text-center">
-                <UtensilsCrossed className="h-8 w-8 text-primary mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Local Amenities</p>
-              </div>
-              <div className="text-center">
-                <DollarSign className="h-8 w-8 text-primary mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Investment Analysis</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
-  if (!analysisData) {
-    return null;
+  if (analysisData) {
+    return (
+      <div className="mt-8 max-w-6xl mx-auto">
+        <PropertyAnalysisReport 
+          address={address}
+          analysisData={analysisData}
+        />
+      </div>
+    );
   }
 
-  return (
-    <PropertyAnalysisReport analysisData={analysisData} />
-  );
+  return null;
 }
 
 export default function AnalyzePage() {
@@ -295,22 +206,22 @@ export default function AnalyzePage() {
   const handleAnalyze = async (address: string) => {
     setIsAnalyzing(true);
     setAnalysisData(null);
-    
+
     try {
       // Call backend API to start analysis
       const response = await analyticsApi.analyzeProperty(address);
       const analysisId = response.data.analysis_id;
-      
+
       // Poll for results
       const pollForResults = async () => {
         const maxAttempts = 60; // 5 minutes max
         let attempts = 0;
-        
+
         while (attempts < maxAttempts) {
           try {
             const resultResponse = await analyticsApi.getPropertyAnalysis(analysisId);
             const result = resultResponse.data;
-            
+
             if (result.status === 'completed') {
               setAnalysisData(result);
               setIsAnalyzing(false);
@@ -320,7 +231,7 @@ export default function AnalyzePage() {
               setIsAnalyzing(false);
               return;
             }
-            
+
             // Wait 5 seconds before next poll
             await new Promise(resolve => setTimeout(resolve, 5000));
             attempts++;
@@ -329,14 +240,14 @@ export default function AnalyzePage() {
             attempts++;
           }
         }
-        
+
         // Timeout
         setIsAnalyzing(false);
         console.error("Analysis timed out");
       };
-      
+
       await pollForResults();
-      
+
     } catch (error) {
       console.error("Analysis failed:", error);
       setIsAnalyzing(false);
@@ -400,11 +311,11 @@ export default function AnalyzePage() {
             Comprehensive Property Analysis
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Enter any property address and get instant AI-powered insights including crime data, 
+            Enter any property address and get instant AI-powered insights including crime data,
             market analysis, local amenities, and investment recommendations.
           </p>
-          
-          <AddressSearchInput 
+
+          <AddressSearchInput
             onAddressSelect={handleAddressSelect}
             onAnalyze={handleAnalyze}
           />
@@ -412,7 +323,7 @@ export default function AnalyzePage() {
 
         {/* Analysis Results */}
         {(isAnalyzing || analysisData) && (
-          <AnalysisResults 
+          <AnalysisResults
             address={selectedAddress}
             isLoading={isAnalyzing}
             analysisData={analysisData}

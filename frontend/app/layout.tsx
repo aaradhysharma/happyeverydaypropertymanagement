@@ -33,8 +33,15 @@ export default function RootLayout({
       <head>
         <Script
           id="google-maps-script"
-          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initGoogleMaps`}
           strategy="afterInteractive"
+          onLoad={() => {
+            // Initialize the new Google Maps API
+            (window as any).initGoogleMaps = () => {
+              window.dispatchEvent(new Event('google-maps-loaded'));
+            };
+          }}
+          onError={() => window.dispatchEvent(new Event('google-maps-error'))}
         />
       </head>
       <body className="font-body bg-background text-foreground antialiased">
