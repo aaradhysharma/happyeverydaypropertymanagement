@@ -10,8 +10,16 @@ from services.perplexity_service import PerplexityService
 import redis
 import uuid
 
-# Redis for caching analysis results
-redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+# Redis for caching analysis results - fallback to in-memory if not available
+try:
+    redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True, socket_connect_timeout=1)
+    redis_client.ping()
+    USE_REDIS = True
+except Exception:
+    redis_client = None
+    USE_REDIS = False
+    _status_memory: Dict[str, Dict[str, Any]] = {}
+    _result_memory: Dict[str, Dict[str, Any]] = {}
 
 class PropertyAnalyzer:
     """Comprehensive property analysis using AI and data scraping"""
@@ -239,8 +247,11 @@ class PropertyAnalyzer:
     def get_analysis_result(analysis_id: str) -> Optional[Dict[str, Any]]:
         """Get analysis result from cache"""
         try:
-            result = redis_client.get(f"analysis_result:{analysis_id}")
-            return json.loads(result) if result else None
+            if USE_REDIS:
+                result = redis_client.get(f"analysis_result:{analysis_id}")
+                return json.loads(result) if result else None
+            else:
+                return _result_memory.get(analysis_id)
         except:
             return None
     
@@ -248,55 +259,70 @@ class PropertyAnalyzer:
     def get_analysis_status(analysis_id: str) -> Optional[Dict[str, Any]]:
         """Get analysis status from cache"""
         try:
-            status = redis_client.get(f"analysis_status:{analysis_id}")
-            return json.loads(status) if status else None
+            if USE_REDIS:
+                status = redis_client.get(f"analysis_status:{analysis_id}")
+                return json.loads(status) if status else None
+            else:
+                return _status_memory.get(analysis_id)
         except:
             return None
     
     @staticmethod
     def _store_analysis_status(analysis_id: str, status: str, data: Dict[str, Any]):
-        """Store analysis status in Redis"""
+        """Store analysis status in Redis or memory"""
         try:
             status_data = {
                 "status": status,
                 "updated_at": datetime.now().isoformat(),
                 **data
             }
-            redis_client.setex(
-                f"analysis_status:{analysis_id}",
-                timedelta(hours=24),
-                json.dumps(status_data)
-            )
+            if USE_REDIS:
+                redis_client.setex(
+                    f"analysis_status:{analysis_id}",
+                    timedelta(hours=24),
+                    json.dumps(status_data)
+                )
+            else:
+                _status_memory[analysis_id] = status_data
         except Exception as e:
             print(f"Failed to store analysis status: {e}")
     
     @staticmethod
     def _store_analysis_result(analysis_id: str, result: Dict[str, Any]):
-        """Store analysis result in Redis"""
+        """Store analysis result in Redis or memory"""
         try:
-            redis_client.setex(
-                f"analysis_result:{analysis_id}",
-                timedelta(days=7),  # Keep results for 7 days
-                json.dumps(result)
-            )
+            if USE_REDIS:
+                redis_client.setex(
+                    f"analysis_result:{analysis_id}",
+                    timedelta(days=7),  # Keep results for 7 days
+                    json.dumps(result)
+                )
+            else:
+                _result_memory[analysis_id] = result
         except Exception as e:
             print(f"Failed to store analysis result: {e}")
     
     @staticmethod
-    def _update_progress(analysis_id: str, step: int, message: str):
+    def _update_progress(analysis_id: str, progress: int, message: str):
         """Update analysis progress"""
         try:
-            status_data = redis_client.get(f"analysis_status:{analysis_id}")
-            if status_data:
-                data = json.loads(status_data)
-                data["current_step"] = step
-                data["current_message"] = message
-                data["updated_at"] = datetime.now().isoformat()
-                redis_client.setex(
-                    f"analysis_status:{analysis_id}",
-                    timedelta(hours=24),
-                    json.dumps(data)
-                )
+            if USE_REDIS:
+                status_data = redis_client.get(f"analysis_status:{analysis_id}")
+                if status_data:
+                    data = json.loads(status_data)
+                    data["progress"] = progress
+                    data["current_step"] = message
+                    data["updated_at"] = datetime.now().isoformat()
+                    redis_client.setex(
+                        f"analysis_status:{analysis_id}",
+                        timedelta(hours=24),
+                        json.dumps(data)
+                    )
+            else:
+                if analysis_id in _status_memory:
+                    _status_memory[analysis_id]["progress"] = progress
+                    _status_memory[analysis_id]["current_step"] = message
+                    _status_memory[analysis_id]["updated_at"] = datetime.now().isoformat()
         except Exception as e:
             print(f"Failed to update progress: {e}")
     

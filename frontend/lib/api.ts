@@ -3,7 +3,7 @@
  */
 import axios from 'axios';
 
-const API_URL = 'https://backend-c8iy0zbfs-aaradhys-projects.vercel.app';
+const API_URL = 'https://backend-llful4804-aaradhys-projects.vercel.app';
 
 export const api = axios.create({
   baseURL: API_URL,
