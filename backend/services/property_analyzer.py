@@ -1,19 +1,14 @@
 """
-Property analysis service using Gemini AI and web scraping
+Property analysis service using Perplexity AI for comprehensive research
 """
 import os
 import json
 import asyncio
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
-import google.generativeai as genai
-from services.property_market_scraper import PropertyMarketScraper, PropertyMarketData
+from services.perplexity_service import PerplexityService
 import redis
 import uuid
-
-# Configure Gemini AI
-genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-model = genai.GenerativeModel('gemini-1.5-flash')
 
 # Redis for caching analysis results
 redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
@@ -30,7 +25,7 @@ class PropertyAnalyzer:
         zip_code: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Perform comprehensive property analysis
+        Perform comprehensive property analysis using Perplexity AI
         """
         try:
             # Store initial status
@@ -38,53 +33,30 @@ class PropertyAnalyzer:
                 "address": address,
                 "started_at": datetime.now().isoformat(),
                 "steps_completed": 0,
-                "total_steps": 6
+                "total_steps": 4
             })
             
-            # Step 1: Geocode address and get coordinates
-            PropertyAnalyzer._update_progress(analysis_id, 1, "Geocoding address...")
-            coordinates = await PropertyAnalyzer._geocode_address(address)
+            # Step 1: Initialize Perplexity service
+            PropertyAnalyzer._update_progress(analysis_id, 20, "Initializing AI research...")
+            perplexity = PerplexityService()
             
-            # Step 2: Scrape market data
-            PropertyAnalyzer._update_progress(analysis_id, 2, "Scraping market data...")
-            market_data = await PropertyAnalyzer._scrape_market_data(address, city, state, zip_code)
+            # Step 2: Get comprehensive property research from Perplexity
+            PropertyAnalyzer._update_progress(analysis_id, 50, "Researching property data...")
+            raw_data = perplexity.research_comprehensive_property(address)
             
-            # Step 3: Get crime data using AI research
-            PropertyAnalyzer._update_progress(analysis_id, 3, "Researching crime data...")
-            crime_data = await PropertyAnalyzer._research_crime_data(coordinates, address)
+            if "error" in raw_data:
+                raise Exception(f"Perplexity research failed: {raw_data['error']}")
             
-            # Step 4: Research local amenities
-            PropertyAnalyzer._update_progress(analysis_id, 4, "Analyzing local amenities...")
-            amenities_data = await PropertyAnalyzer._research_amenities(coordinates, address)
+            # Step 3: Transform data for frontend
+            PropertyAnalyzer._update_progress(analysis_id, 80, "Processing analysis results...")
+            transformed_data = PropertyAnalyzer.transform_comprehensive_report(raw_data, address, analysis_id)
             
-            # Step 5: Generate demographics and economic data
-            PropertyAnalyzer._update_progress(analysis_id, 5, "Gathering demographics...")
-            demographics_data = await PropertyAnalyzer._research_demographics(coordinates, address)
+            # Step 4: Save to database and cache
+            PropertyAnalyzer._update_progress(analysis_id, 100, "Analysis complete!")
+            PropertyAnalyzer._store_analysis_result(analysis_id, transformed_data)
+            PropertyAnalyzer._save_analysis_to_db(transformed_data)
             
-            # Step 6: Generate investment recommendation
-            PropertyAnalyzer._update_progress(analysis_id, 6, "Generating investment analysis...")
-            investment_analysis = await PropertyAnalyzer._generate_investment_analysis(
-                address, market_data, crime_data, amenities_data, demographics_data
-            )
-            
-            # Compile final analysis
-            analysis_result = {
-                "analysis_id": analysis_id,
-                "address": address,
-                "coordinates": coordinates,
-                "market_data": market_data,
-                "crime_data": crime_data,
-                "amenities_data": amenities_data,
-                "demographics_data": demographics_data,
-                "investment_analysis": investment_analysis,
-                "analyzed_at": datetime.now().isoformat(),
-                "status": "completed"
-            }
-            
-            # Store final result
-            PropertyAnalyzer._store_analysis_result(analysis_id, analysis_result)
-            
-            return analysis_result
+            return transformed_data
             
         except Exception as e:
             PropertyAnalyzer._store_analysis_status(analysis_id, "error", {
@@ -92,7 +64,177 @@ class PropertyAnalyzer:
                 "failed_at": datetime.now().isoformat()
             })
             raise e
-    
+
+    @staticmethod
+    def transform_comprehensive_report(raw_data: Dict[str, Any], address: str, analysis_id: str) -> Dict[str, Any]:
+        """Transform Perplexity research into structured format for frontend charts."""
+        location = raw_data.get("location", {})
+        property_profile = raw_data.get("property_profile", {})
+        market = raw_data.get("market_data", {})
+        crime = raw_data.get("crime_data", {})
+        amenities = raw_data.get("amenities", {})
+        demographics = raw_data.get("demographics", {})
+        risk_assessment = raw_data.get("risk_assessment", {})
+        insurance = raw_data.get("insurance", {})
+        education = raw_data.get("education", {})
+        investment = raw_data.get("investment_summary", {})
+
+        # Transform data to match frontend expectations
+        def _comparison(item):
+            return {
+                "subject": item.get("subject", 0),
+                "national": item.get("national_avg", 0),
+                "state": item.get("state_avg", 0),
+                "category": item.get("category", "Total Crime")
+            }
+
+        def _crime_type(item):
+            return {
+                "name": item.get("name", ""),
+                "value": item.get("value", 0),
+                "percentage": item.get("percentage", 0)
+            }
+
+        def _trend_point(item):
+            return {
+                "year": item.get("year", 0),
+                "crimes": item.get("incidents", 0),
+                "rate": item.get("rate", 0)
+            }
+
+        # Build property details
+        property_details = {
+            "beds": None,
+            "baths": None,
+            "square_feet": None,
+            "year_built": property_profile.get("year_built"),
+            "lot_size": property_profile.get("lot_size_sqft"),
+            "property_type": property_profile.get("property_type", "Unknown")
+        }
+
+        # Build rental rates from market data
+        rental_rates = []
+        for rate in market.get("rental_rates", []):
+            rental_rates.append({
+                "type": rate.get("type", ""),
+                "rent": rate.get("rent", 0),
+                "sqft": rate.get("sqft", 0)
+            })
+
+        # Build rental distribution
+        rental_distribution = []
+        for dist in market.get("rental_price_distribution", []):
+            rental_distribution.append({
+                "range": dist.get("range", ""),
+                "percentage": dist.get("percentage", 0)
+            })
+
+        # Build regional rent comparison
+        regional_rent = []
+        for region in market.get("regional_rent_comparison", []):
+            regional_rent.append({
+                "market": region.get("market", ""),
+                "rent": region.get("rent", 0)
+            })
+
+        # Build price trend
+        price_trend = []
+        for trend in market.get("price_trend", []):
+            price_trend.append({
+                "year": trend.get("year", 0),
+                "median_price": trend.get("median_price", 0)
+            })
+
+        # Build violent crime breakdown
+        violent_breakdown = []
+        for violent in crime.get("violent_breakdown", []):
+            violent_breakdown.append({
+                "type": violent.get("type", ""),
+                "incidents": violent.get("incidents", 0),
+                "rate_vs_national": violent.get("rate_vs_national", ""),
+                "risk": violent.get("risk", "Unknown")
+            })
+
+        return {
+            "analysis_id": analysis_id,
+            "address": address,
+            "coordinates": {
+                "lat": location.get("gps_coordinates", {}).get("lat"),
+                "lng": location.get("gps_coordinates", {}).get("lng"),
+            },
+            "full_address_data": {
+                "location": location,
+                "property_profile": property_profile,
+                "coordinates": {
+                    "lat": location.get("gps_coordinates", {}).get("lat"),
+                    "lng": location.get("gps_coordinates", {}).get("lng"),
+                },
+            },
+            "property_details": property_details,
+            "location": {
+                "airports": location.get("nearest_airports", []),
+                "transportation": location.get("transportation", {}),
+                "summary": location.get("summary") or location.get("description"),
+            },
+            "market_data": {
+                "summary": market.get("summary"),
+                "listing_price": market.get("listing_price"),
+                "rent_estimate": market.get("rent_estimate"),
+                "price_per_sqft": market.get("price_per_sqft"),
+                "confidence_score": market.get("confidence_score"),
+                "beds": property_details.get("beds"),
+                "baths": property_details.get("baths"),
+                "square_feet": property_details.get("square_feet"),
+                "year_built": property_details.get("year_built"),
+                "rental_rates": rental_rates,
+                "rental_price_distribution": rental_distribution,
+                "regional_rent_comparison": regional_rent,
+                "price_trend": price_trend,
+                "comparables": market.get("comparables", []),
+            },
+            "crime_data": {
+                "summary": crime.get("summary"),
+                "risk_assessment": crime.get("risk_level"),
+                "crime_rates": crime.get("statistics", {}),
+                "comparison": [_comparison(item) for item in crime.get("comparison_chart", []) or []],
+                "type_breakdown": [_crime_type(item) for item in crime.get("type_breakdown", []) or []],
+                "trends": [_trend_point(item) for item in crime.get("trend_chart", []) or []],
+                "violent_breakdown": violent_breakdown,
+                "safety_recommendations": crime.get("safety_recommendations", []),
+                "ai_analysis": crime.get("summary"),
+            },
+            "amenities_data": amenities,
+            "demographics_data": demographics,
+            "risk_assessment": risk_assessment,
+            "insurance": insurance,
+            "education": education,
+            "investment_analysis": investment,
+            "analyzed_at": datetime.now().isoformat(),
+            "status": "completed",
+        }
+
+    @staticmethod
+    def _save_analysis_to_db(analysis_result: Dict[str, Any]):
+        """Persist the completed analysis to the database."""
+        try:
+            from core.models import PropertyAnalysisReport
+
+            full_address_data = analysis_result.get("full_address_data", {}) or {}
+            PropertyAnalysisReport.objects.update_or_create(
+                analysis_id=analysis_result["analysis_id"],
+                defaults={
+                    "address": analysis_result["address"],
+                    "full_address_data": full_address_data,
+                    "market_data": analysis_result.get("market_data", {}),
+                    "crime_data": analysis_result.get("crime_data", {}),
+                    "amenities_data": analysis_result.get("amenities_data", {}),
+                    "demographics_data": analysis_result.get("demographics_data", {}),
+                    "investment_analysis": analysis_result.get("investment_analysis", {}),
+                },
+            )
+        except Exception as error:
+            print(f"Failed to save analysis to database: {error}")
+
     @staticmethod
     def get_analysis_result(analysis_id: str) -> Optional[Dict[str, Any]]:
         """Get analysis result from cache"""
