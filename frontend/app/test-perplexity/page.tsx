@@ -20,7 +20,8 @@ export default function TestPerplexityPage() {
     setResult(null);
 
     try {
-      const response = await fetch('/api/test-perplexity', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://backend-c8iy0zbfs-aaradhys-projects.vercel.app';
+      const response = await fetch(`${apiUrl}/api/test-perplexity`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
