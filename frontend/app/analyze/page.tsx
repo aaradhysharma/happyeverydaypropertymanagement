@@ -24,7 +24,7 @@ function AddressSearchInput({ onAddressSelect, onAnalyze }: {
   onAddressSelect: (address: string) => void;
   onAnalyze: (address: string) => void;
 }) {
-  const autocompleteRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState("");
   const [isPlacesApiLoaded, setIsPlacesApiLoaded] = useState(false);
   const [placesError, setPlacesError] = useState<string | null>(null);
@@ -34,11 +34,26 @@ function AddressSearchInput({ onAddressSelect, onAnalyze }: {
       setIsPlacesApiLoaded(true);
       setPlacesError(null);
       
-      // Initialize the new Place Autocomplete Element
-      if (autocompleteRef.current) {
-        const autocomplete = autocompleteRef.current;
+      // Create the new Place Autocomplete Element dynamically
+      if (containerRef.current && !containerRef.current.querySelector('gmp-place-autocomplete')) {
+        const autocomplete = document.createElement('gmp-place-autocomplete');
+        autocomplete.setAttribute('placeholder', 'Enter property address (e.g., 123 Main St, City, State)');
+        autocomplete.setAttribute('type-restrictions', 'address');
+        autocomplete.setAttribute('country', 'us');
+        autocomplete.style.cssText = `
+          width: 100%;
+          padding-left: 1rem;
+          padding-right: 8rem;
+          padding-top: 1rem;
+          padding-bottom: 1rem;
+          font-size: 1.125rem;
+          border: 1px solid hsl(var(--border));
+          border-radius: 1rem;
+          background-color: hsl(var(--background));
+          outline: none;
+        `;
         
-        // Add event listeners for the new API
+        // Add event listeners
         autocomplete.addEventListener('gmp-placeselect', (event: any) => {
           const place = event.detail.place;
           if (place && place.formatted_address) {
@@ -51,6 +66,8 @@ function AddressSearchInput({ onAddressSelect, onAnalyze }: {
           setInputValue(event.target.value);
           onAddressSelect(event.target.value);
         });
+        
+        containerRef.current.appendChild(autocomplete);
       }
     };
 
@@ -81,26 +98,9 @@ function AddressSearchInput({ onAddressSelect, onAnalyze }: {
   return (
     <div className="relative w-full max-w-2xl mx-auto">
       <div className="relative">
-        {/* Use the new PlaceAutocompleteElement - it has its own search icon */}
-        <gmp-place-autocomplete
-          ref={autocompleteRef}
-          placeholder="Enter property address (e.g., 123 Main St, City, State)"
-          className="w-full pr-32 py-4 text-lg border border-border rounded-2xl bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-          style={{
-            width: '100%',
-            paddingLeft: '1rem',
-            paddingRight: '8rem',
-            paddingTop: '1rem',
-            paddingBottom: '1rem',
-            fontSize: '1.125rem',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '1rem',
-            backgroundColor: 'hsl(var(--background))',
-            outline: 'none'
-          }}
-          type-restrictions="address"
-          country="us"
-        />
+        <div ref={containerRef} className="relative">
+          {/* Autocomplete element will be inserted here dynamically */}
+        </div>
         
         <Button
           onClick={handleAnalyzeClick}
