@@ -50,6 +50,9 @@ export const analyticsApi = {
 
   getPropertyAnalysis: (analysisId: string) =>
     api.get(`/api/analytics/property-analysis/${analysisId}`),
+
+  getAnalysisProgress: (analysisId: string) =>
+    api.get(`/api/analytics/property-analysis-progress/${analysisId}`),
 };
 
 // Inspections API
