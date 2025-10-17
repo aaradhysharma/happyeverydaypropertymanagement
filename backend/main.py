@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'settings')
 django.setup()
 
-from api import analytics, inspections, providers, privacy
+from api import analytics, inspections, providers, privacy, test_perplexity
 from middleware.auth import get_current_user
 
 
@@ -63,6 +63,7 @@ app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"]
 app.include_router(inspections.router, prefix="/api/inspections", tags=["Inspections"])
 app.include_router(providers.router, prefix="/api/providers", tags=["Service Providers"])
 app.include_router(privacy.router, prefix="/api/privacy", tags=["Privacy & Compliance"])
+app.include_router(test_perplexity.router, prefix="/api", tags=["Testing"])
 
 
 if __name__ == "__main__":

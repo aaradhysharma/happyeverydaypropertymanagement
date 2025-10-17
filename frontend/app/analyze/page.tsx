@@ -328,6 +328,19 @@ export default function AnalyzePage() {
                 <p className="text-sm text-muted-foreground mt-2">
                   Test with a real property in Miramar, FL
                 </p>
+                
+                {/* Test API Button */}
+                <div className="mt-4">
+                  <Link href="/test-perplexity">
+                    <Button variant="secondary" className="rounded-xl px-6 py-2">
+                      <Search className="mr-2 h-4 w-4" />
+                      Test Perplexity API
+                    </Button>
+                  </Link>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Test if Perplexity API is working correctly
+                  </p>
+                </div>
               </div>
         </div>
 
