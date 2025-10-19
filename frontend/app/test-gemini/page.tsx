@@ -574,7 +574,7 @@ Return ONLY valid JSON, no markdown formatting.`
             © 2026 Happy Everyday Property Management. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground">
-            Powered by Google Gemini AI with Chart.js v0.0.4
+            Powered by Google Gemini AI with Chart.js v0.0.5
           </p>
         </div>
       </footer>
