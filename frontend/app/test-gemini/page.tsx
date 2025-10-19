@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, Search, MapPin, ArrowLeft, Loader2, BarChart3, Shield, DollarSign } from "lucide-react";
+import { Sparkles, Search, MapPin, ArrowLeft, Loader2, BarChart3, Shield, DollarSign, TrendingUp } from "lucide-react";
+
+// Chart.js types
+declare global {
+  interface Window {
+    Chart: any;
+  }
+}
 
 export default function TestGeminiPage() {
   const [apiKey, setApiKey] = useState("");
@@ -12,13 +19,22 @@ export default function TestGeminiPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState("");
   const [error, setError] = useState("");
-  const [analysisData, setAnalysisData] = useState<{
-    marketAnalysis: string[];
-    crimeSafety: string[];
-    amenities: string[];
-    demographics: string[];
-    investment: string[];
-  } | null>(null);
+  const [chartData, setChartData] = useState<any>(null);
+  
+  const crimeChartRef = useRef<HTMLCanvasElement>(null);
+  const marketChartRef = useRef<HTMLCanvasElement>(null);
+  const crimeChart = useRef<any>(null);
+  const marketChart = useRef<any>(null);
+
+  // Load Chart.js from CDN
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !window.Chart) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
 
   const handleAnalysis = async () => {
     if (!apiKey.trim() || !address.trim()) {
@@ -29,7 +45,11 @@ export default function TestGeminiPage() {
     setIsLoading(true);
     setError("");
     setResult("");
-    setAnalysisData(null);
+    setChartData(null);
+
+    // Destroy existing charts
+    if (crimeChart.current) crimeChart.current.destroy();
+    if (marketChart.current) marketChart.current.destroy();
 
     try {
       const response = await fetch(
@@ -42,38 +62,62 @@ export default function TestGeminiPage() {
           body: JSON.stringify({
             contents: [{
               parts: [{
-                text: `Conduct a comprehensive property analysis for ${address}. Provide detailed information about:
-                
-                1. Market Analysis:
-                   - Current property values
-                   - Rental rates and trends
-                   - Price per square foot
-                   - Market forecast
-                
-                2. Crime & Safety:
-                   - Crime rates per 1,000 residents
-                   - Safety assessment
-                   - Security recommendations
-                
-                3. Local Amenities:
-                   - Restaurants and dining
-                   - Shopping centers
-                   - Healthcare facilities
-                   - Entertainment options
-                
-                4. Demographics:
-                   - Population statistics
-                   - Income levels
-                   - Education levels
-                   - Employment data
-                
-                5. Investment Analysis:
-                   - ROI potential
-                   - Risk assessment
-                   - Investment recommendation
-                   - Key strengths and risks
-                
-                Format the response as a comprehensive property analysis report with specific data points and recommendations.`
+                text: `Analyze the property at ${address}. Provide data in the following JSON format ONLY:
+
+{
+  "crime_data": {
+    "summary": "Brief crime summary",
+    "total_crime_rate": number,
+    "violent_crime_rate": number,
+    "property_crime_rate": number,
+    "comparison": [
+      {"category": "Total Crime", "subject": number, "national_avg": number, "state_avg": number},
+      {"category": "Violent Crime", "subject": number, "national_avg": number, "state_avg": number},
+      {"category": "Property Crime", "subject": number, "national_avg": number, "state_avg": number}
+    ],
+    "trend": [
+      {"year": 2020, "rate": number},
+      {"year": 2021, "rate": number},
+      {"year": 2022, "rate": number},
+      {"year": 2023, "rate": number},
+      {"year": 2024, "rate": number}
+    ]
+  },
+  "market_data": {
+    "summary": "Brief market summary",
+    "median_price": number,
+    "rent_estimate": number,
+    "price_per_sqft": number,
+    "rental_rates": [
+      {"type": "Studio", "rent": number},
+      {"type": "1BR", "rent": number},
+      {"type": "2BR", "rent": number},
+      {"type": "3BR", "rent": number}
+    ],
+    "price_trend": [
+      {"year": 2020, "price": number},
+      {"year": 2021, "price": number},
+      {"year": 2022, "price": number},
+      {"year": 2023, "price": number},
+      {"year": 2024, "price": number}
+    ]
+  },
+  "amenities": {
+    "restaurants": number,
+    "shopping_centers": number,
+    "schools": number,
+    "hospitals": number,
+    "parks": number
+  },
+  "investment": {
+    "rating": number,
+    "roi_potential": string,
+    "key_strengths": [string],
+    "key_risks": [string]
+  }
+}
+
+Return ONLY valid JSON, no markdown formatting.`
               }]
             }],
             generationConfig: {
@@ -93,12 +137,23 @@ export default function TestGeminiPage() {
       const content = data.candidates[0].content.parts[0].text;
       setResult(content);
       
-      // Parse and structure the data for display
+      // Parse and visualize the JSON data
       try {
-        const structuredData = parseAnalysisResult(content);
-        setAnalysisData(structuredData);
+        let jsonContent = content;
+        if (content.includes('```json')) {
+          jsonContent = content.substring(content.indexOf('```json') + 7, content.lastIndexOf('```'));
+        } else if (content.includes('```')) {
+          jsonContent = content.substring(content.indexOf('```') + 3, content.lastIndexOf('```'));
+        }
+        
+        const parsedData = JSON.parse(jsonContent.trim());
+        setChartData(parsedData);
+        
+        // Wait for next render cycle to create charts
+        setTimeout(() => createCharts(parsedData), 100);
       } catch (parseError) {
-        console.log("Could not parse structured data, showing raw result");
+        console.error("Could not parse JSON:", parseError);
+        setError("Received data but couldn't parse it into charts. Check raw results below.");
       }
     } catch (error: any) {
       setError(error.message || 'Failed to analyze property with Gemini API');
@@ -107,48 +162,124 @@ export default function TestGeminiPage() {
     }
   };
 
-  const parseAnalysisResult = (content: string): {
-    marketAnalysis: string[];
-    crimeSafety: string[];
-    amenities: string[];
-    demographics: string[];
-    investment: string[];
-  } => {
-    // Simple parsing to extract key information
-    const lines = content.split('\n').filter(line => line.trim());
-    
-    return {
-      marketAnalysis: lines.filter(line => 
-        line.toLowerCase().includes('market') || 
-        line.toLowerCase().includes('price') || 
-        line.toLowerCase().includes('rental')
-      ).slice(0, 5),
-      
-      crimeSafety: lines.filter(line => 
-        line.toLowerCase().includes('crime') || 
-        line.toLowerCase().includes('safety') || 
-        line.toLowerCase().includes('security')
-      ).slice(0, 5),
-      
-      amenities: lines.filter(line => 
-        line.toLowerCase().includes('restaurant') || 
-        line.toLowerCase().includes('shopping') || 
-        line.toLowerCase().includes('amenities')
-      ).slice(0, 5),
-      
-      demographics: lines.filter(line => 
-        line.toLowerCase().includes('population') || 
-        line.toLowerCase().includes('income') || 
-        line.toLowerCase().includes('demographics')
-      ).slice(0, 5),
-      
-      investment: lines.filter(line => 
-        line.toLowerCase().includes('roi') || 
-        line.toLowerCase().includes('investment') || 
-        line.toLowerCase().includes('return')
-      ).slice(0, 5)
-    };
+  const createCharts = (data: any) => {
+    if (!window.Chart || !data) return;
+
+    // Crime Comparison Chart
+    if (crimeChartRef.current && data.crime_data?.comparison) {
+      const ctx = crimeChartRef.current.getContext('2d');
+      if (ctx) {
+        crimeChart.current = new window.Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: data.crime_data.comparison.map((d: any) => d.category),
+            datasets: [
+              {
+                label: 'Property',
+                data: data.crime_data.comparison.map((d: any) => d.subject),
+                backgroundColor: 'rgba(200, 100, 60, 0.8)',
+                borderColor: 'rgba(200, 100, 60, 1)',
+                borderWidth: 2
+              },
+              {
+                label: 'National Avg',
+                data: data.crime_data.comparison.map((d: any) => d.national_avg),
+                backgroundColor: 'rgba(123, 123, 123, 0.8)',
+                borderColor: 'rgba(123, 123, 123, 1)',
+                borderWidth: 2
+              },
+              {
+                label: 'State Avg',
+                data: data.crime_data.comparison.map((d: any) => d.state_avg),
+                backgroundColor: 'rgba(168, 168, 168, 0.8)',
+                borderColor: 'rgba(168, 168, 168, 1)',
+                borderWidth: 2
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom'
+              },
+              title: {
+                display: true,
+                text: 'Crime Rate Comparison (per 1,000 residents)',
+                font: {
+                  size: 16,
+                  weight: 'bold'
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: 'Rate per 1,000'
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // Market Rental Rates Chart
+    if (marketChartRef.current && data.market_data?.rental_rates) {
+      const ctx = marketChartRef.current.getContext('2d');
+      if (ctx) {
+        marketChart.current = new window.Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: data.market_data.rental_rates.map((d: any) => d.type),
+            datasets: [{
+              label: 'Monthly Rent ($)',
+              data: data.market_data.rental_rates.map((d: any) => d.rent),
+              backgroundColor: 'rgba(15, 61, 53, 0.8)',
+              borderColor: 'rgba(15, 61, 53, 1)',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              },
+              title: {
+                display: true,
+                text: 'Rental Rates by Unit Type',
+                font: {
+                  size: 16,
+                  weight: 'bold'
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: 'Monthly Rent ($)'
+                }
+              }
+            }
+          }
+        });
+      }
+    }
   };
+
+  useEffect(() => {
+    return () => {
+      if (crimeChart.current) crimeChart.current.destroy();
+      if (marketChart.current) marketChart.current.destroy();
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -164,7 +295,7 @@ export default function TestGeminiPage() {
             </Link>
             <div>
               <p className="eyebrow mb-1">Gemini AI Property Analysis</p>
-              <h1 className="text-xl font-heading text-foreground">Test Property Analysis</h1>
+              <h1 className="text-xl font-heading text-foreground">Test with Charts & Graphs</h1>
             </div>
           </div>
           <nav className="flex items-center gap-3">
@@ -184,10 +315,10 @@ export default function TestGeminiPage() {
         {/* Hero Section */}
         <div className="text-center mb-12">
           <h2 className="text-4xl font-heading font-semibold text-foreground mb-4">
-            Gemini AI Property Analysis Test
+            Gemini AI Property Analysis with Visualizations
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Test our Gemini AI integration with a sample property. Enter your API key and see how our AI analyzes property data in real-time.
+            Enter your API key and property address to get instant analysis with interactive charts and graphs.
           </p>
         </div>
 
@@ -224,7 +355,7 @@ export default function TestGeminiPage() {
                     className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-lg"
                   />
                   <p className="text-xs text-muted-foreground mt-2">
-                    💡 Try: "6737 Arbor Dr, Miramar, FL 33023" or any other property address
+                    💡 Try: "1015 Walnut Street, Yankton, SD" or "6737 Arbor Dr, Miramar, FL 33023"
                   </p>
                 </div>
                 
@@ -259,92 +390,124 @@ export default function TestGeminiPage() {
           </div>
         )}
 
-        {/* Results Display */}
-        {result && (
-          <div className="max-w-6xl mx-auto">
+        {/* Charts Display */}
+        {chartData && (
+          <div className="max-w-6xl mx-auto mb-12">
             <h3 className="text-2xl font-heading font-semibold text-foreground mb-6">Analysis Results</h3>
             
-            {/* Structured Data Display */}
-            {analysisData && (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+            {/* Key Metrics Cards */}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+              {chartData.crime_data && (
                 <Card className="surface-card">
                   <CardContent className="p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <BarChart3 className="h-5 w-5 text-primary" />
-                      <h4 className="font-semibold text-foreground">Market Analysis</h4>
-                    </div>
-                    <div className="space-y-2">
-                      {analysisData.marketAnalysis.map((line, index) => (
-                        <p key={index} className="text-sm text-muted-foreground">{line}</p>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="surface-card">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-2 mb-2">
                       <Shield className="h-5 w-5 text-primary" />
-                      <h4 className="font-semibold text-foreground">Crime & Safety</h4>
+                      <h4 className="font-semibold text-foreground">Crime Rate</h4>
                     </div>
-                    <div className="space-y-2">
-                      {analysisData.crimeSafety.map((line, index) => (
-                        <p key={index} className="text-sm text-muted-foreground">{line}</p>
-                      ))}
-                    </div>
+                    <p className="text-3xl font-bold text-foreground">{chartData.crime_data.total_crime_rate}</p>
+                    <p className="text-sm text-muted-foreground">per 1,000 residents</p>
                   </CardContent>
                 </Card>
+              )}
 
+              {chartData.market_data && (
+                <>
+                  <Card className="surface-card">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-2 mb-2">
+                        <DollarSign className="h-5 w-5 text-primary" />
+                        <h4 className="font-semibold text-foreground">Median Price</h4>
+                      </div>
+                      <p className="text-3xl font-bold text-foreground">${chartData.market_data.median_price?.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">${chartData.market_data.price_per_sqft}/sqft</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="surface-card">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp className="h-5 w-5 text-primary" />
+                        <h4 className="font-semibold text-foreground">Rent Estimate</h4>
+                      </div>
+                      <p className="text-3xl font-bold text-foreground">${chartData.market_data.rent_estimate}</p>
+                      <p className="text-sm text-muted-foreground">per month</p>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+
+              {chartData.investment && (
                 <Card className="surface-card">
                   <CardContent className="p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <MapPin className="h-5 w-5 text-primary" />
-                      <h4 className="font-semibold text-foreground">Amenities</h4>
-                    </div>
-                    <div className="space-y-2">
-                      {analysisData.amenities.map((line, index) => (
-                        <p key={index} className="text-sm text-muted-foreground">{line}</p>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="surface-card">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-2 mb-2">
                       <BarChart3 className="h-5 w-5 text-primary" />
-                      <h4 className="font-semibold text-foreground">Demographics</h4>
+                      <h4 className="font-semibold text-foreground">Investment Rating</h4>
                     </div>
-                    <div className="space-y-2">
-                      {analysisData.demographics.map((line, index) => (
-                        <p key={index} className="text-sm text-muted-foreground">{line}</p>
-                      ))}
-                    </div>
+                    <p className="text-3xl font-bold text-foreground">{chartData.investment.rating}/10</p>
+                    <p className="text-sm text-muted-foreground">{chartData.investment.roi_potential}</p>
                   </CardContent>
                 </Card>
+              )}
+            </div>
 
-                <Card className="surface-card">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <DollarSign className="h-5 w-5 text-primary" />
-                      <h4 className="font-semibold text-foreground">Investment</h4>
+            {/* Charts */}
+            <div className="grid gap-8 md:grid-cols-2 mb-8">
+              <Card className="surface-card">
+                <CardContent className="p-6">
+                  <div style={{ height: '400px' }}>
+                    <canvas ref={crimeChartRef}></canvas>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="surface-card">
+                <CardContent className="p-6">
+                  <div style={{ height: '400px' }}>
+                    <canvas ref={marketChartRef}></canvas>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Investment Summary */}
+            {chartData.investment && (
+              <Card className="surface-card">
+                <CardContent className="p-6">
+                  <h4 className="text-xl font-semibold text-foreground mb-4">Investment Analysis</h4>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div>
+                      <h5 className="font-semibold text-foreground mb-2">Key Strengths</h5>
+                      <ul className="space-y-2">
+                        {chartData.investment.key_strengths.map((strength: string, idx: number) => (
+                          <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
+                            <span className="text-green-600">✓</span>
+                            <span>{strength}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <div className="space-y-2">
-                      {analysisData.investment.map((line, index) => (
-                        <p key={index} className="text-sm text-muted-foreground">{line}</p>
-                      ))}
+                    <div>
+                      <h5 className="font-semibold text-foreground mb-2">Key Risks</h5>
+                      <ul className="space-y-2">
+                        {chartData.investment.key_risks.map((risk: string, idx: number) => (
+                          <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
+                            <span className="text-red-600">⚠</span>
+                            <span>{risk}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
-            {/* Full Text Results */}
-            <Card className="surface-card">
-              <CardContent className="p-8">
-                <h4 className="font-semibold text-foreground mb-4">Complete Analysis Report</h4>
-                <div className="bg-gray-50 p-6 rounded-lg">
-                  <pre className="whitespace-pre-wrap text-sm text-gray-700 max-h-96 overflow-y-auto">{result}</pre>
+            {/* Raw Data */}
+            <Card className="surface-card mt-8">
+              <CardContent className="p-6">
+                <h4 className="font-semibold text-foreground mb-4">Raw Analysis Data</h4>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <pre className="whitespace-pre-wrap text-xs text-gray-700 max-h-96 overflow-y-auto">{JSON.stringify(chartData, null, 2)}</pre>
                 </div>
               </CardContent>
             </Card>
@@ -352,7 +515,7 @@ export default function TestGeminiPage() {
         )}
 
         {/* Features Preview */}
-        {!isLoading && !result && (
+        {!isLoading && !chartData && (
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 mt-16">
             <Card className="surface-card">
               <CardContent className="p-6 text-center">
@@ -361,7 +524,7 @@ export default function TestGeminiPage() {
                 </div>
                 <h3 className="font-heading font-semibold text-foreground mb-2">Crime Analysis</h3>
                 <p className="text-sm text-muted-foreground">
-                  Comprehensive crime data, safety ratings, and security recommendations
+                  Interactive charts showing crime rates, trends, and comparisons
                 </p>
               </CardContent>
             </Card>
@@ -373,7 +536,7 @@ export default function TestGeminiPage() {
                 </div>
                 <h3 className="font-heading font-semibold text-foreground mb-2">Market Intelligence</h3>
                 <p className="text-sm text-muted-foreground">
-                  Real-time rental rates, property values, and market trends
+                  Visualize rental rates, property values, and market trends
                 </p>
               </CardContent>
             </Card>
@@ -385,7 +548,7 @@ export default function TestGeminiPage() {
                 </div>
                 <h3 className="font-heading font-semibold text-foreground mb-2">Local Amenities</h3>
                 <p className="text-sm text-muted-foreground">
-                  Dining, shopping, entertainment, and quality of life factors
+                  Data on dining, shopping, schools, and quality of life
                 </p>
               </CardContent>
             </Card>
@@ -397,7 +560,7 @@ export default function TestGeminiPage() {
                 </div>
                 <h3 className="font-heading font-semibold text-foreground mb-2">Investment Analysis</h3>
                 <p className="text-sm text-muted-foreground">
-                  ROI projections, risk assessment, and AI-powered recommendations
+                  ROI projections, ratings, and AI-powered recommendations
                 </p>
               </CardContent>
             </Card>
@@ -411,7 +574,7 @@ export default function TestGeminiPage() {
             © 2026 Happy Everyday Property Management. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground">
-            Powered by Google Gemini AI v0.0.4
+            Powered by Google Gemini AI with Chart.js v0.0.4
           </p>
         </div>
       </footer>
