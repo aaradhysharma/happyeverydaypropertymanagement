@@ -414,7 +414,7 @@ export default function AnalyzePage() {
             © 2026 Happy Everyday Property Management. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground">
-            Powered by Google AI, Gemini, and comprehensive data analysis v0.1.0
+            Powered by Google AI, Gemini, and comprehensive data analysis v0.0.4
           </p>
         </div>
       </footer>

@@ -1,7 +1,7 @@
 "use client";
 
 export function VersionDisplay() {
-  const version = process.env.NEXT_PUBLIC_VERSION || "0.0.2";
+  const version = process.env.NEXT_PUBLIC_VERSION || "0.0.4";
   
   return (
     <div className="fixed bottom-4 right-4 z-50">

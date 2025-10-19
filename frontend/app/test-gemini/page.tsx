@@ -399,7 +399,7 @@ export default function TestGeminiPage() {
             © 2026 Happy Everyday Property Management. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground">
-            Powered by Google Gemini AI v0.0.2
+            Powered by Google Gemini AI v0.0.4
           </p>
         </div>
       </footer>
