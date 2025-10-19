@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sparkles, ArrowLeft, Loader2 } from "lucide-react";
+import type { PropertyAnalysis } from "@/lib/property-analysis/schema";
 
 // Chart.js types
 declare global {
@@ -17,6 +18,7 @@ export default function TestGeminiSimplePage() {
   const [address, setAddress] = useState("1015 Walnut Street, Yankton, SD");
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [analysisData, setAnalysisData] = useState<PropertyAnalysis | null>(null);
 
   const crimeChartRef = useRef<HTMLCanvasElement>(null);
