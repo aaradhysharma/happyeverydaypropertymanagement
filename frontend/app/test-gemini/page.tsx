@@ -12,7 +12,13 @@ export default function TestGeminiPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState("");
   const [error, setError] = useState("");
-  const [analysisData, setAnalysisData] = useState(null);
+  const [analysisData, setAnalysisData] = useState<{
+    marketAnalysis: string[];
+    crimeSafety: string[];
+    amenities: string[];
+    demographics: string[];
+    investment: string[];
+  } | null>(null);
 
   const handleAnalysis = async () => {
     if (!apiKey.trim() || !address.trim()) {
@@ -101,7 +107,13 @@ export default function TestGeminiPage() {
     }
   };
 
-  const parseAnalysisResult = (content: string) => {
+  const parseAnalysisResult = (content: string): {
+    marketAnalysis: string[];
+    crimeSafety: string[];
+    amenities: string[];
+    demographics: string[];
+    investment: string[];
+  } => {
     // Simple parsing to extract key information
     const lines = content.split('\n').filter(line => line.trim());
     
