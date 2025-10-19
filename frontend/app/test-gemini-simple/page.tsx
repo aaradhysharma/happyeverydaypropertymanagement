@@ -14,7 +14,6 @@ declare global {
 }
 
 export default function TestGeminiSimplePage() {
-  const [apiKey, setApiKey] = useState("");
   const [address, setAddress] = useState("1015 Walnut Street, Yankton, SD");
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState("");
@@ -35,8 +34,8 @@ export default function TestGeminiSimplePage() {
   }, []);
 
   const handleAnalysis = async () => {
-    if (!apiKey.trim() || !address.trim()) {
-      setError("Please enter both API key and property address");
+    if (!address.trim()) {
+      setError("Please enter a property address");
       return;
     }
 
@@ -49,17 +48,14 @@ export default function TestGeminiSimplePage() {
     if (chart.current) chart.current.destroy();
 
     try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `Analyze the property at ${address}. Return ONLY this JSON format:
+      const response = await fetch('/api/analyze-property', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          address: address,
+          prompt: `Analyze the property at ${address}. Return ONLY this JSON format:
 
 {
   "crime_data": {
@@ -86,15 +82,8 @@ export default function TestGeminiSimplePage() {
 }
 
 Return ONLY valid JSON, no markdown.`
-              }]
-            }],
-            generationConfig: {
-              temperature: 0.3,
-              maxOutputTokens: 2000,
-            }
-          }),
-        }
-      );
+        })
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -102,7 +91,7 @@ Return ONLY valid JSON, no markdown.`
       }
 
       const data = await response.json();
-      const content = data.candidates[0].content.parts[0].text;
+      const content = data.content || data.result;
       setResult(content);
       
       // Parse and visualize the JSON data
@@ -237,22 +226,6 @@ Return ONLY valid JSON, no markdown.`
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-2">
-                    Gemini API Key
-                  </label>
-                  <input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Enter your Gemini API key"
-                    className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-lg"
-                  />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Get your free API key from <a href="https://makersuite.google.com/app/apikey" target="_blank" className="text-primary hover:underline">Google AI Studio</a>
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-2">
                     Property Address
                   </label>
                   <input
@@ -262,11 +235,14 @@ Return ONLY valid JSON, no markdown.`
                     placeholder="Enter property address"
                     className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-lg"
                   />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    💡 Try: "1015 Walnut Street, Yankton, SD" or "6737 Arbor Dr, Miramar, FL 33023"
+                  </p>
                 </div>
                 
                 <Button 
                   onClick={handleAnalysis}
-                  disabled={isLoading || !apiKey.trim() || !address.trim()}
+                  disabled={isLoading || !address.trim()}
                   className="w-full py-4 text-lg"
                 >
                   {isLoading ? (
