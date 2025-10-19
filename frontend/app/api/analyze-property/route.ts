@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildPropertyAnalysisPrompt } from "./promptTemplate";
-import { PropertyAnalysisSchema, clampAnalysisScores } from "@/lib/property-analysis/schema";
+import { PropertyAnalysisSchema, clampAnalysisScores } from "../../../lib/property-analysis/schema";
 
 async function callGemini(prompt: string, apiKey: string) {
   const response = await fetch(
