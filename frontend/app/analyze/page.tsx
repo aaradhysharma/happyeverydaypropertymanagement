@@ -331,14 +331,14 @@ export default function AnalyzePage() {
                 
                 {/* Test API Button */}
                 <div className="mt-4">
-                  <Link href="/test-perplexity">
+                  <Link href="/technology">
                     <Button variant="secondary" className="rounded-xl px-6 py-2">
                       <Search className="mr-2 h-4 w-4" />
-                      Test Perplexity API
+                      Test Gemini AI
                     </Button>
                   </Link>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Test if Perplexity API is working correctly
+                    Test our Gemini AI integration on the Technology page
                   </p>
                 </div>
               </div>

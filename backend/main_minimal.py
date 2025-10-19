@@ -95,3 +95,4 @@ async def test_perplexity_api(request: TestQuery):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main_minimal:app", host="0.0.0.0", port=8000, reload=True)
+

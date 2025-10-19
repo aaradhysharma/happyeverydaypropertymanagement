@@ -6,7 +6,7 @@ import json
 import asyncio
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
-from services.perplexity_service import PerplexityService
+from services.gemini_service import GeminiService
 import redis
 import uuid
 
@@ -44,16 +44,16 @@ class PropertyAnalyzer:
                 "total_steps": 4
             })
             
-            # Step 1: Initialize Perplexity service
+            # Step 1: Initialize Gemini service
             PropertyAnalyzer._update_progress(analysis_id, 20, "Initializing AI research...")
-            perplexity = PerplexityService()
+            gemini = GeminiService()
             
-            # Step 2: Get comprehensive property research from Perplexity
+            # Step 2: Get comprehensive property research from Gemini
             PropertyAnalyzer._update_progress(analysis_id, 50, "Researching property data...")
-            raw_data = perplexity.research_comprehensive_property(address)
+            raw_data = gemini.research_comprehensive_property(address)
             
             if "error" in raw_data:
-                raise Exception(f"Perplexity research failed: {raw_data['error']}")
+                raise Exception(f"Gemini research failed: {raw_data['error']}")
             
             # Step 3: Transform data for frontend
             PropertyAnalyzer._update_progress(analysis_id, 80, "Processing analysis results...")

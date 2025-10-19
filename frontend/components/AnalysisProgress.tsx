@@ -35,3 +35,4 @@ export function AnalysisProgress({ progress, currentStep, address }: AnalysisPro
   );
 }
 
+

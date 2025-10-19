@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Brain, Eye, Zap, Shield, BarChart3, Bot, Network, Cpu } from "lucide-react";
+import { Brain, Eye, Zap, Shield, BarChart3, Bot, Network, Cpu, Sparkles, Search, MapPin } from "lucide-react";
+import { useState } from "react";
 
 const aiSystems = [
   {
@@ -102,6 +103,137 @@ const aiSystems = [
   },
 ];
 
+// Gemini Demo Component
+function GeminiDemo() {
+  const [apiKey, setApiKey] = useState("");
+  const [query, setQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSearch = async () => {
+    if (!apiKey.trim() || !query.trim()) {
+      setError("Please enter both API key and query");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+    setResult("");
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: `${query}\n\nPlease provide the answer in a clear numbered list format with values. For example: "1. Russia - 17,098,242"`
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.4,
+              maxOutputTokens: 2048,
+            }
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.candidates[0].content.parts[0].text;
+      setResult(content);
+    } catch (error: any) {
+      setError(error.message || 'Failed to fetch data from Gemini API');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl p-8 shadow-lg">
+      <h3 className="text-2xl font-heading font-semibold text-foreground mb-6 flex items-center gap-2">
+        <Sparkles className="h-6 w-6 text-primary" />
+        Gemini AI Demo
+      </h3>
+      
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-semibold text-foreground mb-2">
+            Gemini API Key
+          </label>
+          <input
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="Enter your Gemini API key"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Get your free API key from <a href="https://makersuite.google.com/app/apikey" target="_blank" className="text-primary hover:underline">Google AI Studio</a>
+          </p>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold text-foreground mb-2">
+            Search Query
+          </label>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="e.g., Top 10 countries by land area in square kilometers"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            💡 Try: "Top 10 largest cities by population", "Top 5 fastest animals in mph"
+          </p>
+        </div>
+        
+        <Button 
+          onClick={handleSearch}
+          disabled={isLoading || !apiKey.trim() || !query.trim()}
+          className="w-full"
+        >
+          {isLoading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              Searching...
+            </>
+          ) : (
+            <>
+              <Search className="mr-2 h-4 w-4" />
+              Search with Gemini
+            </>
+          )}
+        </Button>
+        
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <strong>Error:</strong> {error}
+          </div>
+        )}
+        
+        {result && (
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-semibold text-foreground mb-2">Results:</h4>
+            <pre className="whitespace-pre-wrap text-sm text-gray-700">{result}</pre>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function TechnologyPage() {
   return (
     <div className="min-h-screen bg-background">
@@ -197,8 +329,27 @@ export default function TechnologyPage() {
           </div>
         </section>
 
-        {/* Human-AI Partnership */}
+        {/* Gemini AI Demo Section */}
         <section className="site-section bg-[rgba(15,61,53,0.08)]">
+          <div className="container mx-auto px-6">
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center mb-8">
+                <p className="eyebrow">Try our AI technology</p>
+                <h2 className="text-4xl font-heading text-foreground mb-4">
+                  Experience Gemini AI in Action
+                </h2>
+                <p className="text-lg text-[color:rgba(37,33,30,0.78)] max-w-2xl mx-auto">
+                  Test our Gemini AI integration with your own API key. See how our property analysis technology works in real-time.
+                </p>
+              </div>
+              
+              <GeminiDemo />
+            </div>
+          </div>
+        </section>
+
+        {/* Human-AI Partnership */}
+        <section className="site-section">
           <div className="container mx-auto px-6">
             <div className="surface-card p-12 max-w-4xl mx-auto">
               <div className="text-center space-y-6">
@@ -212,9 +363,12 @@ export default function TechnologyPage() {
                 <p className="text-[color:rgba(37,33,30,0.78)] max-w-2xl mx-auto">
                   Every AI decision can be reviewed and overridden by our property managers. Technology serves our team and your residents—never the other way around.
                 </p>
-                <div className="pt-6">
+                <div className="pt-6 flex gap-4 justify-center">
                   <Link href="/dashboard">
                     <Button className="button-primary">Explore live dashboard</Button>
+                  </Link>
+                  <Link href="/analyze">
+                    <Button variant="outline">Test Property Analysis</Button>
                   </Link>
                 </div>
               </div>
