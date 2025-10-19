@@ -252,6 +252,11 @@ export default function TechnologyPage() {
                 Home
               </Button>
             </Link>
+            <Link href="/test-gemini-simple">
+              <Button variant="ghost" className="rounded-full px-5 py-2 text-sm font-semibold">
+                Test Gemini
+              </Button>
+            </Link>
             <Link href="/dashboard">
               <Button className="button-primary">Dashboard</Button>
             </Link>

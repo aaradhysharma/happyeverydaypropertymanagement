@@ -277,6 +277,11 @@ export default function AnalyzePage() {
                 Technology
               </Button>
             </Link>
+            <Link href="/test-gemini-simple">
+              <Button variant="ghost" className="rounded-full px-4 py-2 text-sm font-semibold">
+                Test Gemini
+              </Button>
+            </Link>
             <Link href="/properties">
               <Button variant="ghost" className="rounded-full px-4 py-2 text-sm font-semibold">
                 Properties

@@ -16,18 +16,18 @@ declare global {
 export default function TestGeminiSimplePage() {
   const [address, setAddress] = useState("1015 Walnut Street, Yankton, SD");
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState("");
-  const [error, setError] = useState("");
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [chartData, setChartData] = useState<any>(null);
   
   const chartRef = useRef<HTMLCanvasElement>(null);
-  const chart = useRef<any>(null);
+  const chartInstance = useRef<any>(null);
 
   // Load Chart.js from CDN
   useEffect(() => {
-    if (typeof window !== 'undefined' && !window.Chart) {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+    if (typeof window !== "undefined" && !window.Chart) {
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
       script.async = true;
       document.body.appendChild(script);
     }
@@ -40,151 +40,145 @@ export default function TestGeminiSimplePage() {
     }
 
     setIsLoading(true);
-    setError("");
-    setResult("");
+    setError(null);
+    setResult(null);
     setChartData(null);
 
-    // Destroy existing chart
-    if (chart.current) chart.current.destroy();
+    // Destroy previous chart instance before new analysis
+    if (chartInstance.current) {
+      chartInstance.current.destroy();
+      chartInstance.current = null;
+    }
 
     try {
-      const response = await fetch('/api/analyze-property', {
-        method: 'POST',
+      const response = await fetch("/api/analyze-property", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          address: address,
-          prompt: `Analyze the property at ${address}. Return ONLY this JSON format:
-
-{
-  "crime_data": {
-    "total_crime_rate": 25.5,
-    "violent_crime_rate": 3.2,
-    "property_crime_rate": 22.3,
-    "comparison": [
-      {"category": "Total Crime", "subject": 25.5, "national_avg": 22.8, "state_avg": 19.5},
-      {"category": "Violent Crime", "subject": 3.2, "national_avg": 3.6, "state_avg": 2.8},
-      {"category": "Property Crime", "subject": 22.3, "national_avg": 19.2, "state_avg": 16.6}
-    ]
-  },
-  "market_data": {
-    "median_price": 185000,
-    "rent_estimate": 1200,
-    "price_per_sqft": 95,
-    "rental_rates": [
-      {"type": "Studio", "rent": 800},
-      {"type": "1BR", "rent": 1000},
-      {"type": "2BR", "rent": 1200},
-      {"type": "3BR", "rent": 1400}
-    ]
-  }
-}
-
-Return ONLY valid JSON, no markdown.`
-        })
+        body: JSON.stringify({ address: address.trim() }),
       });
 
+      const payload = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+        throw new Error(payload.error || "Failed to analyze property");
       }
 
-      const data = await response.json();
-      const content = data.content || data.result;
-      setResult(content);
-      
-      // Parse and visualize the JSON data
-      try {
-        let jsonContent = content;
-        if (content.includes('```json')) {
-          jsonContent = content.substring(content.indexOf('```json') + 7, content.lastIndexOf('```'));
-        } else if (content.includes('```')) {
-          jsonContent = content.substring(content.indexOf('```') + 3, content.lastIndexOf('```'));
-        }
-        
-        const parsedData = JSON.parse(jsonContent.trim());
-        setChartData(parsedData);
-        
-        // Wait for next render cycle to create chart
-        setTimeout(() => createChart(parsedData), 100);
-      } catch (parseError) {
-        console.error("Could not parse JSON:", parseError);
-        setError("Received data but couldn't parse it into charts. Check raw results below.");
+      if (!payload?.content) {
+        throw new Error("No analysis content returned");
       }
-    } catch (error: any) {
-      setError(error.message || 'Failed to analyze property with Gemini API');
+
+      if (payload.content.includes("DATA_NOT_FOUND")) {
+        setError("We couldn't find enough reliable data for this address. Try another property or verify the address.");
+        return;
+      }
+
+      setResult(payload.content);
+
+      try {
+        let jsonContent = payload.content;
+        if (jsonContent.includes("```json")) {
+          jsonContent = jsonContent.substring(jsonContent.indexOf("```json") + 7, jsonContent.lastIndexOf("```"));
+        } else if (jsonContent.includes("```")) {
+          jsonContent = jsonContent.substring(jsonContent.indexOf("```") + 3, jsonContent.lastIndexOf("```"));
+        }
+
+        const parsedData = JSON.parse(jsonContent.trim());
+
+        if (parsedData?.error === "DATA_NOT_FOUND") {
+          setError("Gemini could not verify enough data for this property. Please try a different address.");
+          return;
+        }
+
+        setChartData(parsedData);
+        requestAnimationFrame(() => createCharts(parsedData));
+      } catch (parseError) {
+        console.error("JSON parse error", parseError);
+        setError("Received analysis but couldn't parse data for charts. Check raw output below.");
+      }
+    } catch (err: any) {
+      console.error("Analysis error", err);
+      setError(err?.message || "Failed to analyze property");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const createChart = (data: any) => {
-    if (!window.Chart || !data || !chartRef.current) return;
-
-    const ctx = chartRef.current.getContext('2d');
-    if (ctx && data.crime_data?.comparison) {
-      chart.current = new window.Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: data.crime_data.comparison.map((d: any) => d.category),
-          datasets: [
-            {
-              label: 'Property',
-              data: data.crime_data.comparison.map((d: any) => d.subject),
-              backgroundColor: 'rgba(200, 100, 60, 0.8)',
-              borderColor: 'rgba(200, 100, 60, 1)',
-              borderWidth: 2
-            },
-            {
-              label: 'National Avg',
-              data: data.crime_data.comparison.map((d: any) => d.national_avg),
-              backgroundColor: 'rgba(123, 123, 123, 0.8)',
-              borderColor: 'rgba(123, 123, 123, 1)',
-              borderWidth: 2
-            },
-            {
-              label: 'State Avg',
-              data: data.crime_data.comparison.map((d: any) => d.state_avg),
-              backgroundColor: 'rgba(168, 168, 168, 0.8)',
-              borderColor: 'rgba(168, 168, 168, 1)',
-              borderWidth: 2
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom'
-            },
-            title: {
-              display: true,
-              text: 'Crime Rate Comparison (per 1,000 residents)',
-              font: {
-                size: 16,
-                weight: 'bold'
-              }
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: {
-                display: true,
-                text: 'Rate per 1,000'
-              }
-            }
-          }
-        }
-      });
+  const createCharts = (data: any) => {
+    if (typeof window === "undefined" || !window.Chart || !chartRef.current) {
+      return;
     }
+
+    const comparisonData = data?.crime_data?.comparison;
+
+    if (!Array.isArray(comparisonData) || comparisonData.length === 0) {
+      return;
+    }
+
+    const ctx = chartRef.current.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+
+    chartInstance.current = new window.Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: comparisonData.map((entry: any) => entry.category),
+        datasets: [
+          {
+            label: "Property",
+            data: comparisonData.map((entry: any) => entry.subject ?? 0),
+            backgroundColor: "rgba(200, 100, 60, 0.8)",
+            borderColor: "rgba(200, 100, 60, 1)",
+            borderWidth: 2,
+          },
+          {
+            label: "National Avg",
+            data: comparisonData.map((entry: any) => entry.national_avg ?? 0),
+            backgroundColor: "rgba(123, 123, 123, 0.8)",
+            borderColor: "rgba(123, 123, 123, 1)",
+            borderWidth: 2,
+          },
+          {
+            label: "State Avg",
+            data: comparisonData.map((entry: any) => entry.state_avg ?? 0),
+            backgroundColor: "rgba(168, 168, 168, 0.8)",
+            borderColor: "rgba(168, 168, 168, 1)",
+            borderWidth: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+          duration: 400,
+        },
+        plugins: {
+          legend: { position: "bottom" },
+          title: {
+            display: true,
+            text: "Crime Rate Comparison (per 1,000 residents)",
+            font: { size: 16, weight: "bold" },
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: "Rate per 1,000" },
+          },
+        },
+      },
+    });
   };
 
   useEffect(() => {
     return () => {
-      if (chart.current) chart.current.destroy();
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+        chartInstance.current = null;
+      }
     };
   }, []);
 
@@ -317,7 +311,9 @@ Return ONLY valid JSON, no markdown.`
               <CardContent className="p-6">
                 <h4 className="font-semibold text-foreground mb-4">Raw Analysis Data</h4>
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <pre className="whitespace-pre-wrap text-xs text-gray-700 max-h-96 overflow-y-auto">{JSON.stringify(chartData, null, 2)}</pre>
+                  <pre className="whitespace-pre-wrap text-xs text-gray-700 max-h-96 overflow-y-auto">
+                    {chartData ? JSON.stringify(chartData, null, 2) : result}
+                  </pre>
                 </div>
               </CardContent>
             </Card>

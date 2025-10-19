@@ -65,8 +65,13 @@ export default function HomePage() {
               </Button>
             </Link>
             <Link href="/technology">
-              <Button variant="ghost" className="rounded-full px-4 py-2 text-sm font-semibold">
+              <Button variant="ghost" className="rounded-full px-5 py-2 text-sm font-semibold">
                 Technology
+              </Button>
+            </Link>
+            <Link href="/test-gemini-simple">
+              <Button variant="ghost" className="rounded-full px-5 py-2 text-sm font-semibold">
+                Test Gemini
               </Button>
             </Link>
             <Link href="/properties">

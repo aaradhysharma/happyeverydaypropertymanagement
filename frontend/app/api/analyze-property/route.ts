@@ -2,83 +2,114 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { address, prompt } = await request.json();
-    
+    const body = await request.json();
+    const address: string = (body?.address || "").trim();
+
     if (!address) {
-      return NextResponse.json({ error: 'Address is required' }, { status: 400 });
+      return NextResponse.json({ error: "Address is required" }, { status: 400 });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'Gemini API key not configured' }, { status: 500 });
+      return NextResponse.json({ error: "Gemini API key not configured" }, { status: 500 });
     }
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt || `Analyze the property at ${address}. Return ONLY this JSON format:
+    const prompt = `You are a real estate intelligence analyst. Using only credible, current (2022-2024) public data sources such as FBI UCR, Census Bureau, HUD, Zillow, Redfin, and local government open-data portals, provide quantitative insight for the property located at ${address}.
 
+Return a single valid JSON object (no markdown, backticks, or commentary) with the following structure:
 {
   "crime_data": {
-    "total_crime_rate": 25.5,
-    "violent_crime_rate": 3.2,
-    "property_crime_rate": 22.3,
+    "summary": string,
+    "total_crime_rate": number,
+    "violent_crime_rate": number,
+    "property_crime_rate": number,
     "comparison": [
-      {"category": "Total Crime", "subject": 25.5, "national_avg": 22.8, "state_avg": 19.5},
-      {"category": "Violent Crime", "subject": 3.2, "national_avg": 3.6, "state_avg": 2.8},
-      {"category": "Property Crime", "subject": 22.3, "national_avg": 19.2, "state_avg": 16.6}
+      {"category": "Total Crime", "subject": number, "national_avg": number, "state_avg": number},
+      {"category": "Violent Crime", "subject": number, "national_avg": number, "state_avg": number},
+      {"category": "Property Crime", "subject": number, "national_avg": number, "state_avg": number}
+    ],
+    "trend": [
+      {"year": number, "rate": number}
     ]
   },
   "market_data": {
-    "median_price": 185000,
-    "rent_estimate": 1200,
-    "price_per_sqft": 95,
+    "summary": string,
+    "median_price": number | null,
+    "rent_estimate": number | null,
+    "price_per_sqft": number | null,
     "rental_rates": [
-      {"type": "Studio", "rent": 800},
-      {"type": "1BR", "rent": 1000},
-      {"type": "2BR", "rent": 1200},
-      {"type": "3BR", "rent": 1400}
+      {"type": string, "rent": number | null}
+    ],
+    "price_trend": [
+      {"year": number, "price": number | null}
     ]
+  },
+  "amenities": {
+    "summary": string,
+    "restaurants": number | null,
+    "shopping_centers": number | null,
+    "schools": number | null,
+    "hospitals": number | null,
+    "parks": number | null
+  },
+  "investment": {
+    "rating": number,
+    "roi_potential": string,
+    "key_strengths": [string],
+    "key_risks": [string]
   }
 }
 
-Return ONLY valid JSON, no markdown.`
-            }]
+All numeric fields must be numbers (not strings). Use null when a value cannot be verified. If you cannot find sufficient data for this address, respond with {"error": "DATA_NOT_FOUND"}. Do not fabricate statistics.`;
+
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }],
           }],
           generationConfig: {
             temperature: 0.3,
             maxOutputTokens: 2000,
-          }
+          },
         }),
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json({ 
-        error: errorData.error?.message || `Gemini API Error: ${response.status}` 
-      }, { status: response.status });
+    if (!geminiResponse.ok) {
+      const errorData = await geminiResponse.json();
+      return NextResponse.json(
+        {
+          error: errorData.error?.message || `Gemini API Error: ${geminiResponse.status}`,
+        },
+        { status: geminiResponse.status }
+      );
     }
 
-    const data = await response.json();
-    const content = data.candidates[0].content.parts[0].text;
+    const data = await geminiResponse.json();
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+    const content = parts.map((part: { text?: string }) => part.text || "").join("");
 
-    return NextResponse.json({ 
-      content,
-      success: true 
-    });
+    if (!content) {
+      return NextResponse.json(
+        { error: "Gemini returned an empty response" },
+        { status: 502 }
+      );
+    }
 
+    return NextResponse.json({ content, success: true });
   } catch (error: any) {
-    console.error('Property analysis error:', error);
-    return NextResponse.json({ 
-      error: error.message || 'Internal server error' 
-    }, { status: 500 });
+    console.error("Property analysis error:", error);
+    return NextResponse.json(
+      {
+        error: error?.message || "Internal server error",
+      },
+      { status: 500 }
+    );
   }
 }
