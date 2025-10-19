@@ -77,6 +77,7 @@ vercel
 3. Set environment variables in Vercel dashboard:
    - `NEXT_PUBLIC_API_URL`: Your backend API URL
    - `NEXT_PUBLIC_VERSION`: 0.0.1
+    - Update `NEXT_PUBLIC_VERSION` in `next.config.js` when incrementing releases.
 
 ## Project Structure
 
