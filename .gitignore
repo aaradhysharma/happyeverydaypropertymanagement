@@ -12,6 +12,9 @@ eggs/
 .eggs/
 lib/
 lib64/
+# Allow the frontend property analysis schema to be tracked
+!frontend/lib/property-analysis/
+!frontend/lib/
 parts/
 sdist/
 var/
