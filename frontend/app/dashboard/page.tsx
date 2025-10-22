@@ -75,7 +75,7 @@ export default function DashboardPage() {
         const response = await analyticsApi.getDashboard(selectedPropertyId);
         return response.data;
       } catch (err) {
-        console.log('API unavailable, using mock data for demo');
+        // API unavailable, using mock data for demo
         return mockDashboardData;
       }
     },
