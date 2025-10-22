@@ -74,10 +74,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message || "Gemini request failed" }, { status: 502 });
     }
 
-    if (rawContent.includes("DATA_NOT_FOUND")) {
-      return NextResponse.json({ error: "DATA_NOT_FOUND" }, { status: 404 });
-    }
-
     const jsonString = extractJson(rawContent);
 
     let parsedJson: unknown;
@@ -85,6 +81,15 @@ export async function POST(request: NextRequest) {
       parsedJson = JSON.parse(jsonString);
     } catch {
       return NextResponse.json({ error: "Gemini returned invalid JSON" }, { status: 502 });
+    }
+
+    if (
+      typeof parsedJson === "object" &&
+      parsedJson !== null &&
+      "error" in parsedJson &&
+      (parsedJson as { error?: string }).error === "DATA_NOT_FOUND"
+    ) {
+      return NextResponse.json({ error: "DATA_NOT_FOUND" }, { status: 404 });
     }
 
     let validated;
