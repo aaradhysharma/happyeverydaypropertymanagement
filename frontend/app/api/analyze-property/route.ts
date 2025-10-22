@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildPropertyAnalysisPrompt } from "./promptTemplate";
 import { PropertyAnalysisSchema, clampAnalysisScores } from "@/lib/property-analysis/schema";
+import { createFallbackAnalysis } from "@/lib/property-analysis/fallback";
 
 async function callGemini(prompt: string, apiKey: string) {
   const response = await fetch(
@@ -80,7 +81,8 @@ export async function POST(request: NextRequest) {
     try {
       parsedJson = JSON.parse(jsonString);
     } catch {
-      return NextResponse.json({ error: "Gemini returned invalid JSON" }, { status: 502 });
+      const fallback = clampAnalysisScores(createFallbackAnalysis(address));
+      return NextResponse.json({ success: false, data: fallback, warnings: ["INVALID_JSON"] });
     }
 
     if (
@@ -89,7 +91,8 @@ export async function POST(request: NextRequest) {
       "error" in parsedJson &&
       (parsedJson as { error?: string }).error === "DATA_NOT_FOUND"
     ) {
-      return NextResponse.json({ error: "DATA_NOT_FOUND" }, { status: 404 });
+      const fallback = clampAnalysisScores(createFallbackAnalysis(address));
+      return NextResponse.json({ success: true, data: fallback, warnings: ["DATA_NOT_FOUND"] });
     }
 
     let validated;
@@ -97,7 +100,8 @@ export async function POST(request: NextRequest) {
       validated = PropertyAnalysisSchema.parse(parsedJson);
     } catch (error) {
       console.error("Validation error", error);
-      return NextResponse.json({ error: "Gemini response failed validation" }, { status: 502 });
+      const fallback = clampAnalysisScores(createFallbackAnalysis(address));
+      return NextResponse.json({ success: false, data: fallback, warnings: ["VALIDATION_FAILED"] });
     }
 
     const sanitized = clampAnalysisScores(validated);
