@@ -7,17 +7,12 @@ import asyncio
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 from services.gemini_service import GeminiService
-import redis
+# Redis removed - using in-memory storage for simplicity
 import uuid
 
-# Redis for caching analysis results - fallback to in-memory if not available
-try:
-    redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True, socket_connect_timeout=1)
-    redis_client.ping()
-    USE_REDIS = True
-except Exception:
-    redis_client = None
-    USE_REDIS = False
+# In-memory storage for analysis results (replace with database in production)
+USE_REDIS = False
+redis_client = None
     _status_memory: Dict[str, Dict[str, Any]] = {}
     _result_memory: Dict[str, Dict[str, Any]] = {}
 
@@ -241,7 +236,8 @@ class PropertyAnalyzer:
                 },
             )
         except Exception as error:
-            print(f"Failed to save analysis to database: {error}")
+            # Log error (replace with proper logging in production)
+            pass
 
     @staticmethod
     def get_analysis_result(analysis_id: str) -> Optional[Dict[str, Any]]:
@@ -285,7 +281,8 @@ class PropertyAnalyzer:
             else:
                 _status_memory[analysis_id] = status_data
         except Exception as e:
-            print(f"Failed to store analysis status: {e}")
+            # Log error (replace with proper logging in production)
+            pass
     
     @staticmethod
     def _store_analysis_result(analysis_id: str, result: Dict[str, Any]):
@@ -300,7 +297,8 @@ class PropertyAnalyzer:
             else:
                 _result_memory[analysis_id] = result
         except Exception as e:
-            print(f"Failed to store analysis result: {e}")
+            # Log error (replace with proper logging in production)
+            pass
     
     @staticmethod
     def _update_progress(analysis_id: str, progress: int, message: str):
@@ -324,7 +322,8 @@ class PropertyAnalyzer:
                     _status_memory[analysis_id]["current_step"] = message
                     _status_memory[analysis_id]["updated_at"] = datetime.now().isoformat()
         except Exception as e:
-            print(f"Failed to update progress: {e}")
+            # Log error (replace with proper logging in production)
+            pass
     
     @staticmethod
     async def _geocode_address(address: str) -> Dict[str, float]:

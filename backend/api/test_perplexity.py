@@ -46,12 +46,12 @@ async def test_perplexity_api(query: TestQuery):
             "temperature": 0.2
         }
         
-        print(f"Testing Perplexity API with query: {query.query}")
+        # Testing Perplexity API
         
         response = requests.post(url, headers=headers, json=payload, timeout=30)
         
         if response.status_code != 200:
-            print(f"Perplexity API error: {response.status_code} - {response.text}")
+            # Perplexity API error
             raise HTTPException(
                 status_code=500, 
                 detail=f"Perplexity API error: {response.status_code} - {response.text}"
@@ -72,11 +72,11 @@ async def test_perplexity_api(query: TestQuery):
         }
         
     except requests.exceptions.RequestException as e:
-        print(f"Request error: {str(e)}")
+        # Request error
         raise HTTPException(status_code=500, detail=f"Request failed: {str(e)}")
     except json.JSONDecodeError as e:
-        print(f"JSON decode error: {str(e)}")
+        # JSON decode error
         raise HTTPException(status_code=500, detail=f"Invalid JSON response: {str(e)}")
     except Exception as e:
-        print(f"Unexpected error: {str(e)}")
+        # Unexpected error
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")

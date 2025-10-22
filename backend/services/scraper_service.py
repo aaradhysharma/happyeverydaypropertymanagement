@@ -58,7 +58,7 @@ class ScraperService:
         try:
             # Check robots.txt
             if not ScraperService.check_robots_txt(url):
-                print(f"❌ Scraping not allowed by robots.txt: {url}")
+                # Scraping not allowed by robots.txt
                 return None
             
             # Rate limiting
@@ -75,7 +75,7 @@ class ScraperService:
             
             return response.text
         except Exception as e:
-            print(f"Error fetching {url}: {e}")
+            # Error fetching URL
             return None
     
     @staticmethod
@@ -152,7 +152,7 @@ class ScraperService:
         name = company_data["name"]
         url = company_data["url"]
         
-        print(f"📊 Scraping {name}...")
+        # Scraping company
         
         html = cls.fetch_page(url)
         
@@ -193,6 +193,6 @@ class ScraperService:
         Search for recent news about a company (placeholder for future enhancement)
         Could integrate with news APIs or RSS feeds
         """
-        # TODO: Implement news aggregation
+        # News aggregation not implemented
         return []
 
