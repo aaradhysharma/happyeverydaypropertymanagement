@@ -18,18 +18,35 @@ export async function POST(request: NextRequest) {
 
 Return a single valid JSON object (no markdown, backticks, or commentary) with the following structure:
 {
+  "property_info": {
+    "address": string,
+    "city": string,
+    "state": string,
+    "zip_code": string
+  },
   "crime_data": {
     "summary": string,
+    "risk_level": string,
     "total_crime_rate": number,
     "violent_crime_rate": number,
     "property_crime_rate": number,
     "comparison": [
       {"category": "Total Crime", "subject": number, "national_avg": number, "state_avg": number},
       {"category": "Violent Crime", "subject": number, "national_avg": number, "state_avg": number},
-      {"category": "Property Crime", "subject": number, "national_avg": number, "state_avg": number}
+      {"category": "Property Crime", "subject": number, "national_avg": number, "state_avg": number},
+      {"category": "Theft", "subject": number, "national_avg": number, "state_avg": number}
+    ],
+    "breakdown": [
+      {"name": string, "value": number, "percentage": number}
     ],
     "trend": [
-      {"year": number, "rate": number}
+      {"year": string, "crimes": number, "rate": number}
+    ],
+    "violent_types": [
+      {"type": string, "incidents": number, "rateVsNational": string, "risk": string}
+    ],
+    "property_types": [
+      {"type": string, "incidents": number, "rateVsNational": string, "risk": string}
     ]
   },
   "market_data": {
@@ -37,11 +54,21 @@ Return a single valid JSON object (no markdown, backticks, or commentary) with t
     "median_price": number | null,
     "rent_estimate": number | null,
     "price_per_sqft": number | null,
+    "avg_rent": number | null,
+    "yoy_change": number | null,
+    "vs_national_avg_percent": number | null,
+    "market_temp": string,
     "rental_rates": [
-      {"type": string, "rent": number | null}
+      {"type": string, "rent": number, "sqft": number}
     ],
     "price_trend": [
-      {"year": number, "price": number | null}
+      {"year": string, "price": number}
+    ],
+    "rent_comparison": [
+      {"city": string, "rent": number}
+    ],
+    "rental_distribution": [
+      {"range": string, "percentage": number, "count": number}
     ]
   },
   "amenities": {
@@ -50,17 +77,39 @@ Return a single valid JSON object (no markdown, backticks, or commentary) with t
     "shopping_centers": number | null,
     "schools": number | null,
     "hospitals": number | null,
-    "parks": number | null
+    "parks": number | null,
+    "restaurant_types": [
+      {"type": string, "count": number, "percentage": number}
+    ]
+  },
+  "economics": {
+    "population": number | null,
+    "population_growth": string,
+    "unemployment_rate": number | null,
+    "median_income": number | null,
+    "income_growth": string,
+    "median_age": number | null,
+    "education_bachelor_plus": number | null,
+    "homeownership_rate": number | null,
+    "employed_residents": number | null,
+    "key_sectors": [
+      {"sector": string, "status": string, "description": string}
+    ]
   },
   "investment": {
-    "rating": number,
+    "overall_score": number,
+    "cap_rate_score": number,
+    "market_stability_score": number,
+    "crime_safety_score": number,
+    "recommendation": string,
     "roi_potential": string,
     "key_strengths": [string],
-    "key_risks": [string]
+    "key_risks": [string],
+    "next_steps": [string]
   }
 }
 
-All numeric fields must be numbers (not strings). Use null when a value cannot be verified. If you cannot find sufficient data for this address, respond with {"error": "DATA_NOT_FOUND"}. Do not fabricate statistics.`;
+All numeric fields must be numbers (not strings). Use null when a value cannot be verified. Provide at least 3-5 data points for each array field. If you cannot find sufficient data for this address, respond with {"error": "DATA_NOT_FOUND"}. Do not fabricate statistics.`;
 
     const geminiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
@@ -75,7 +124,7 @@ All numeric fields must be numbers (not strings). Use null when a value cannot b
           }],
           generationConfig: {
             temperature: 0.3,
-            maxOutputTokens: 2000,
+            maxOutputTokens: 8000,
           },
         }),
       }
