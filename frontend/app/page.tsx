@@ -59,11 +59,6 @@ export default function HomePage() {
                 About
               </Button>
             </Link>
-            <Link href="/analyze">
-              <Button variant="ghost" className="rounded-full px-4 py-2 text-sm font-semibold">
-                Analysis
-              </Button>
-            </Link>
             <Link href="/technology">
               <Button variant="ghost" className="rounded-full px-5 py-2 text-sm font-semibold">
                 Technology

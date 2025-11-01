@@ -374,9 +374,6 @@ export default function TechnologyPage() {
                   <Link href="/dashboard">
                     <Button className="button-primary">Explore live dashboard</Button>
                   </Link>
-                  <Link href="/analyze">
-                    <Button variant="outline">Test Property Analysis</Button>
-                  </Link>
                 </div>
               </div>
             </div>

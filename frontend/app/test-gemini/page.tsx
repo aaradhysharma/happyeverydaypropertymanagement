@@ -304,9 +304,6 @@ Return ONLY valid JSON, no markdown formatting.`
                 Technology
               </Button>
             </Link>
-            <Link href="/analyze">
-              <Button className="button-primary">Full Analysis</Button>
-            </Link>
           </nav>
         </div>
       </header>
